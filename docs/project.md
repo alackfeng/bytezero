@@ -14,7 +14,7 @@ go get -u github.com/spf13/cobra/cobra
 cobra init bytezero --pkg-name github.com/alackfeng/bytezero
 
 #### 添加子服务.
-cd D:\taurus\bitdisk\code\bytezero\bytezero-go
+cd D:\taurus\bitdisk\code\bytezero\bytezero
 cobra add server -t github.com/alackfeng/bytezero
 cobra add client -t github.com/alackfeng/bytezero
 
@@ -22,10 +22,10 @@ cobra add client -t github.com/alackfeng/bytezero
 
 
 #### 运行.
-go run .\main.go web
+go run .\main.go server
 
-go build -o bin/smartnet.exe -v main.go
-.\bin\smartnet.exe web
+go build -o bin/bytezero.exe -v main.go
+.\bin\bytezero.exe server
 
 
 `````
@@ -33,10 +33,10 @@ go build -o bin/smartnet.exe -v main.go
 ## 使用go mod管理工程.
 `````
 
-cd D:\taurus\bitdisk\code\smartnet
+cd D:\taurus\bitdisk\code\bytezero\bytezero
 
 #### 初始化go.mod.
-go mod init github.com/bitdisk/smartnet
+go mod init github.com/alackfeng/bytezero
 
 #### 检查依赖源码包
 go mod tidy -v
