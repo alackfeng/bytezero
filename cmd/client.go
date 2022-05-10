@@ -18,6 +18,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/alackfeng/bytezero/apps/client"
 	"github.com/spf13/cobra"
 )
 
@@ -33,19 +34,19 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("client called")
+        tcpAddress, _ := cmd.Flags().GetString("tcp-address")
+        maxBufferLen, _ := cmd.Flags().GetInt("max-buffer-len")
+        sendPeroidMs, _ := cmd.Flags().GetInt("send-peroid-ms")
+
+        appsClient := client.NewAppsClient(tcpAddress)
+        appsClient.SetMaxBufferLen(maxBufferLen).SetSendPeroid(sendPeroidMs).Main()
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(clientCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// clientCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// clientCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	clientCmd.Flags().StringP("tcp-address", "t", "127.0.0.1:7788", "TCP Address")
+	clientCmd.Flags().IntP("max-buffer-len", "l", 1024*1024*1, "Max Buffer Length")
+	clientCmd.Flags().IntP("send-peroid-ms", "p", 10, "Send Peroid Ms.")
 }
