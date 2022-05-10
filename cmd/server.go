@@ -16,8 +16,13 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
+	bze "github.com/alackfeng/bytezero/cores"
 	"github.com/spf13/cobra"
 )
 
@@ -32,7 +37,46 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("server called")
+		fmt.Println("bytezero server called")
+
+
+        done := make(chan bool)
+		sigs := make(chan os.Signal, 1)
+        signal.Notify(sigs)
+        ctx, cancel := context.WithCancel(context.Background())
+        defer func() {
+			cancel()
+			close(sigs)
+			close(done)
+		}()
+        bzn := bze.NewBytezeroNet(ctx, done)
+        bzn.Main()
+
+        logcmd.Errorln("main listen...")
+		bQuit := false
+		for {
+			select {
+			case sig := <-sigs:
+				if sig == syscall.SIGTERM || sig == syscall.SIGINT {
+					logcmd.Warnln("main Catch Signal: ", sig)
+					bQuit = bzn.Quit()
+					// } else if sig == syscall.SIGURG {
+				} else {
+					if sig.String() == "child exited" || sig.String() == "urgent I/O condition" {
+					} else {
+						logcmd.Warnln("main Catch Signal - ", sig)
+					}
+				}
+			case d := <-done:
+				logcmd.Errorln("main done. ", d)
+				bQuit = true
+			}
+
+			if bQuit { // QUIT
+				break
+			}
+		}
+		logcmd.Errorln("main over...")
 	},
 }
 
