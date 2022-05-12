@@ -14,14 +14,18 @@ type TcpServer struct {
     network string
     address string
     maxBufferLen int // recv max buffer len
+    readBufferLen int
+    writeBufferLen int
 }
 
 // NewTcpServer -
-func NewTcpServer(address string) *TcpServer {
+func NewTcpServer(address string, maxBufferLen int, rwBufferLen int) *TcpServer {
     return &TcpServer{
         network: "tcp",
         address: address,
-        maxBufferLen: 1024 * 1024 * 10,
+        maxBufferLen: maxBufferLen,
+        readBufferLen: rwBufferLen,
+        writeBufferLen: rwBufferLen,
     }
 }
 
@@ -54,6 +58,13 @@ func (t *TcpServer) Listen() error {
 
 // handleConn -
 func (t *TcpServer) handleConn(conn *net.TCPConn) error {
+    if t.readBufferLen > 1024 {
+        conn.SetReadBuffer(t.readBufferLen)
+    }
+    if t.writeBufferLen > 1024 {
+        conn.SetWriteBuffer(t.writeBufferLen)
+    }
+
     defer conn.Close()
     count := 0
     buffer := make([]byte, t.maxBufferLen)

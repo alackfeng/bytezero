@@ -7,14 +7,18 @@ type UdpServer struct {
     network string
     address string
     maxBufferLen int
+    readBufferLen int
+    writeBufferLen int
 }
 
 // NewUdpServer -
-func NewUdpServer(address string) *UdpServer {
+func NewUdpServer(address string, maxBufferLen int, rwBufferLen int) *UdpServer {
     return &UdpServer{
         network: "udp",
         address: address,
-        maxBufferLen: 1024 * 1024 * 10,
+        maxBufferLen: maxBufferLen,
+        readBufferLen: rwBufferLen,
+        writeBufferLen: rwBufferLen,
     }
 }
 
@@ -29,6 +33,12 @@ func (u *UdpServer) Listen() error {
         return err
     }
     logsv.Debugln("UdpServer Listen begin.", udpAddr.String())
+    if u.readBufferLen > 1024 {
+        udpListener.SetReadBuffer(u.readBufferLen)
+    }
+    if u.writeBufferLen > 1024 {
+        udpListener.SetWriteBuffer(u.writeBufferLen)
+    }
 
     buffer := make([]byte, u.maxBufferLen)
     for {

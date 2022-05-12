@@ -87,20 +87,24 @@ func (app *AppsClient) SetUdpAddress(address string) *AppsClient {
 
 // handleSender -
 func (app *AppsClient) handleSender() {
+    if app.tcpAddress == "" {
+        return
+    }
     app.sendStat.Begin()
     // buffer := make([]byte, app.sendBufferLen)
     buffer := utils.RandomBytes(app.sendBufferLen, nil)
-    sendDuration := time.Duration(app.sendPeriod) * time.Millisecond
-    ticker := time.NewTicker(sendDuration)
-    defer ticker.Stop()
+    // sendDuration := time.Duration(app.sendPeriod) * time.Millisecond
+    // ticker := time.NewTicker(sendDuration)
+    // defer ticker.Stop()
     fmt.Printf("AppsClient.handleSender - send duration %d ms, buffer len %d, begin time %v.\n", app.sendPeriod, app.sendBufferLen, app.sendStat.InfoAll())
     bQuit := false
     for {
         select {
         case <- app.done:
             bQuit = true
-        case <- ticker.C:
-            dura := utils.NewDuration()
+        // case <- ticker.C:
+        default:
+            // dura := utils.NewDuration()
             n, err := app.tcpClient.Write(buffer)
             if err != nil {
                 fmt.Printf("AppsClient.handleSender - send error.%v.\n", err.Error())
@@ -112,11 +116,14 @@ func (app *AppsClient) handleSender() {
             }
             // fmt.Printf("send buffer No.%d, len %d, real %d. =>%v.\n", app.sentCount, app.sendBufferLen, n, buffer[0:10])
             // fmt.Printf("send buffer No.%d, len %d, real %d.\n", app.sentCount, app.sendBufferLen, n)
-            if app.sendStat.Count % 1000 == 0 {
-                fmt.Printf("send buffer No.%d, len %d, real %d. dura %d ms.\n", app.sendStat.Count, app.sendBufferLen, n, dura.DuraMs())
-            }
+            // if app.sendStat.Count % 1000 == 0 {
+            //     fmt.Printf("send buffer No.%d, len %d, real %d. dura %d ms.\n", app.sendStat.Count, app.sendBufferLen, n, dura.DuraMs())
+            // }
             // fmt.Printf("send buffer No.%d, len %d, real %d. dura %d ms. =>%s.\n", app.sentCount, app.sendBufferLen, n, dura.DuraMs(), string(buffer[0:10]))
             app.sendStat.Inc(int64(n))
+            if app.sendStat.Count % 10000 == 0 {
+                time.Sleep(time.Millisecond*3)
+            }
         }
         if bQuit == true {
             break
@@ -128,6 +135,9 @@ func (app *AppsClient) handleSender() {
 
 // handleRecevicer -
 func (app *AppsClient) handleRecevicer() {
+    if app.tcpAddress == "" {
+        return
+    }
     buffer := make([]byte, app.recvBufferLen)
     currTime := time.Now()
     for {
@@ -149,7 +159,7 @@ func (app *AppsClient) handleRecevicer() {
         }
         if time.Now().Sub(currTime).Milliseconds() > 1000 {
             currTime = time.Now()
-            fmt.Printf("AppsClient.handleRecevicer recv - count %d, bps %s.\n", app.recvStat.Count, utils.ByteSizeFormat(app.recvStat.Bps1s()))
+            fmt.Printf("AppsClient.handleRecevicer recv - count %d, bps %s. send bps %s\n", app.recvStat.Count, utils.ByteSizeFormat(app.recvStat.Bps1s()), utils.ByteSizeFormat(app.sendStat.Bps1s()))
         }
     }
     app.recvStat.End()
@@ -159,6 +169,9 @@ func (app *AppsClient) handleRecevicer() {
 
 // handleUdpRecevicer -
 func (app *AppsClient) handleUdpRecevicer() {
+    if app.udpAddress == "" {
+        return
+    }
     buffer := make([]byte, app.recvBufferLen)
     currTime := time.Now()
     for {
@@ -180,7 +193,7 @@ func (app *AppsClient) handleUdpRecevicer() {
         }
         if time.Now().Sub(currTime).Milliseconds() > 1000 {
             currTime = time.Now()
-            fmt.Printf("AppsClient.handleUdpRecevicer recv - count %d, bps %s.\n", app.recvStat.Count, utils.ByteSizeFormat(app.recvStat.Bps1s()))
+            fmt.Printf("AppsClient.handleUdpRecevicer recv - count %d, bps %s. send bps %s.\n", app.recvStat.Count, utils.ByteSizeFormat(app.recvStat.Bps1s()), utils.ByteSizeFormat(app.sendStat.Bps1s()))
         }
     }
     app.recvStat.End()
@@ -190,19 +203,23 @@ func (app *AppsClient) handleUdpRecevicer() {
 
 // handleUdpSender -
 func (app *AppsClient) handleUdpSender() {
+    if app.udpAddress == "" {
+        return
+    }
     app.sendStat.Begin()
     buffer := utils.RandomBytes(app.sendBufferLen, nil)
-    sendDuration := time.Duration(app.sendPeriod) * time.Millisecond
-    ticker := time.NewTicker(sendDuration)
-    defer ticker.Stop()
+    // sendDuration := time.Duration(app.sendPeriod) * time.Millisecond
+    // ticker := time.NewTicker(sendDuration)
+    // defer ticker.Stop()
     fmt.Printf("AppsClient.handleUdpSender - send duration %d ms, buffer len %d, begin time %v.\n", app.sendPeriod, app.sendBufferLen, app.sendStat.InfoAll())
     bQuit := false
     for {
         select {
         case <- app.done:
             bQuit = true
-        case <- ticker.C:
-            dura := utils.NewDuration()
+        // case <- ticker.C:
+        default:
+            // dura := utils.NewDuration()
             n, err := app.udpClient.Write(buffer)
             if err != nil {
                 fmt.Printf("AppsClient.handleUdpSender - send error.%v.\n", err.Error())
@@ -214,9 +231,9 @@ func (app *AppsClient) handleUdpSender() {
             }
             // fmt.Printf("send buffer No.%d, len %d, real %d. =>%v.\n", app.sentCount, app.sendBufferLen, n, buffer[0:10])
             // fmt.Printf("send buffer No.%d, len %d, real %d.\n", app.sentCount, app.sendBufferLen, n)
-            if app.sendStat.Count % 1000 == 0 {
-                fmt.Printf("send buffer No.%d, len %d, real %d. dura %d ms.\n", app.sendStat.Count, app.sendBufferLen, n, dura.DuraMs())
-            }
+            // if app.sendStat.Count % 1000 == 0 {
+            //     fmt.Printf("send buffer No.%d, len %d, real %d. dura %d ms.\n", app.sendStat.Count, app.sendBufferLen, n, dura.DuraMs())
+            // }
             // fmt.Printf("send buffer No.%d, len %d, real %d. dura %d ms. =>%s.\n", app.sentCount, app.sendBufferLen, n, dura.DuraMs(), string(buffer[0:10]))
             app.sendStat.Inc(int64(n))
         }

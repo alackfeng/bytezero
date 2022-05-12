@@ -17,6 +17,8 @@ type BytezeroNet struct {
     tsAddr string
     us* server.UdpServer
     usAddr string
+    maxBufferLen int
+    rwBufferLen int
 }
 
 var _ bz.BZNet = (*BytezeroNet)(nil)
@@ -27,6 +29,8 @@ func NewBytezeroNet(ctx context.Context, done chan bool) *BytezeroNet {
         done: done,
         tsAddr: ":7788",
         usAddr: ":7789",
+        maxBufferLen: 1024*1024*10,
+        rwBufferLen: 1024*1024*50,
     }
     return bzn
 }
@@ -46,7 +50,7 @@ func (bzn *BytezeroNet) Quit() bool {
 
 // StartTcp -
 func (bzn *BytezeroNet) StartTcp() {
-    tcpServer := server.NewTcpServer(bzn.tsAddr)
+    tcpServer := server.NewTcpServer(bzn.tsAddr, bzn.maxBufferLen, bzn.rwBufferLen)
     err := tcpServer.Listen()
     if err != nil {
         logbz.Errorln("BytezeroNet.StartTcp.Listen error.%v.", err.Error())
@@ -56,7 +60,7 @@ func (bzn *BytezeroNet) StartTcp() {
 }
 
 func (bzn *BytezeroNet) StartUdp() {
-    udpServer := server.NewUdpServer(bzn.usAddr)
+    udpServer := server.NewUdpServer(bzn.usAddr, bzn.maxBufferLen, bzn.rwBufferLen)
     err := udpServer.Listen()
     if err != nil {
         logbz.Errorln("BytezeroNet.StartUdp.Listen error.%v.", err.Error())
