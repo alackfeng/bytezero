@@ -20,6 +20,10 @@ type AppsClient struct {
 
     tcpAddress string
     tcpClient* bzc.TcpClient
+
+    udpAddress string
+    udpClient* bzc.UdpClient
+
     sendPeriod int // Microsecond
     sendBufferLen int // bytes.
     recvBufferLen int //
@@ -33,14 +37,13 @@ type AppsClient struct {
 }
 
 // NewAppsClient -
-func NewAppsClient(tcpAddress string) *AppsClient {
+func NewAppsClient() *AppsClient {
     c := &AppsClient{
         done: make(chan bool),
         sendPeriod: sendPeroid,
         sendBufferLen: maxBufferLen,
         recvBufferLen: maxBufferLen,
         recvCheck: false,
-        tcpAddress: tcpAddress,
     }
     return c
 }
@@ -67,6 +70,18 @@ func (app *AppsClient) SetMaxBufferLen(len int) *AppsClient {
 // SetRecvCheck -
 func (app *AppsClient) SetRecvCheck(check bool) *AppsClient {
     app.recvCheck = check
+    return app
+}
+
+// SetTcpAddress -
+func (app *AppsClient) SetTcpAddress(address string) *AppsClient {
+    app.tcpAddress = address
+    return app
+}
+
+// SetUdpAddress -
+func (app *AppsClient) SetUdpAddress(address string) *AppsClient {
+    app.udpAddress = address
     return app
 }
 
@@ -142,6 +157,77 @@ func (app *AppsClient) handleRecevicer() {
     app.done <- true
 }
 
+// handleUdpRecevicer -
+func (app *AppsClient) handleUdpRecevicer() {
+    buffer := make([]byte, app.recvBufferLen)
+    currTime := time.Now()
+    for {
+        n, addr, err := app.udpClient.ReadFromUDP(buffer[:])
+        if err != nil {
+            fmt.Printf("AppsClient.handleUdpRecevicer error.%v.\n", err.Error())
+            break
+        }
+        if app.recvStat.Bytes == 0 {
+            app.recvStat.Begin()
+            fmt.Printf("AppsClient.handleUdpRecevicer - begin. recv begin %v - remote addr %v.\n", app.recvStat.Info(), addr)
+        }
+        app.recvStat.Inc(int64(n))
+        if n != app.recvBufferLen {
+            // fmt.Printf("AppsClient.handleUdpRecevicer recv buffer len %d not equal send buffer, real %d.\n", app.recvBufferLen, n)
+            if app.recvCheck {
+                break
+            }
+        }
+        if time.Now().Sub(currTime).Milliseconds() > 1000 {
+            currTime = time.Now()
+            fmt.Printf("AppsClient.handleUdpRecevicer recv - count %d, bps %s.\n", app.recvStat.Count, utils.ByteSizeFormat(app.recvStat.Bps1s()))
+        }
+    }
+    app.recvStat.End()
+    fmt.Printf("AppsClient.handleUdpRecevicer - end... %v.\n", app.recvStat.InfoAll())
+    app.done <- true
+}
+
+// handleUdpSender -
+func (app *AppsClient) handleUdpSender() {
+    app.sendStat.Begin()
+    buffer := utils.RandomBytes(app.sendBufferLen, nil)
+    sendDuration := time.Duration(app.sendPeriod) * time.Millisecond
+    ticker := time.NewTicker(sendDuration)
+    defer ticker.Stop()
+    fmt.Printf("AppsClient.handleUdpSender - send duration %d ms, buffer len %d, begin time %v.\n", app.sendPeriod, app.sendBufferLen, app.sendStat.InfoAll())
+    bQuit := false
+    for {
+        select {
+        case <- app.done:
+            bQuit = true
+        case <- ticker.C:
+            dura := utils.NewDuration()
+            n, err := app.udpClient.Write(buffer)
+            if err != nil {
+                fmt.Printf("AppsClient.handleUdpSender - send error.%v.\n", err.Error())
+                break
+            }
+            if n != app.sendBufferLen {
+                fmt.Printf("AppsClient.handleUdpSender - send buffer len %d not equal real sent %d.\n", app.sendBufferLen, n)
+                break
+            }
+            // fmt.Printf("send buffer No.%d, len %d, real %d. =>%v.\n", app.sentCount, app.sendBufferLen, n, buffer[0:10])
+            // fmt.Printf("send buffer No.%d, len %d, real %d.\n", app.sentCount, app.sendBufferLen, n)
+            if app.sendStat.Count % 1000 == 0 {
+                fmt.Printf("send buffer No.%d, len %d, real %d. dura %d ms.\n", app.sendStat.Count, app.sendBufferLen, n, dura.DuraMs())
+            }
+            // fmt.Printf("send buffer No.%d, len %d, real %d. dura %d ms. =>%s.\n", app.sentCount, app.sendBufferLen, n, dura.DuraMs(), string(buffer[0:10]))
+            app.sendStat.Inc(int64(n))
+        }
+        if bQuit == true {
+            break
+        }
+    }
+    app.sendStat.End()
+    fmt.Printf("AppsClient.handleUdpSender - send duration %d ms, buffer len %d, %v.\n", app.sendPeriod, app.sendBufferLen, app.sendStat.InfoAll())
+}
+
 // wait -
 func (app *AppsClient) wait() error {
     fmt.Printf("AppsClient.wait - begin.\n")
@@ -160,6 +246,9 @@ func (app *AppsClient) wait() error {
         } else if cmd == "send" {
             go app.handleRecevicer()
             go app.handleSender()
+        } else if cmd == "udp" {
+            go app.handleUdpRecevicer()
+            go app.handleUdpSender()
         } else {
             fmt.Printf("cmd => (%v) not impliment.\r\n", cmd)
         }
@@ -171,12 +260,22 @@ func (app *AppsClient) wait() error {
 
 // Main -
 func (app *AppsClient) Main() error {
-    tcpClient := bzc.NewTcpClient(app.tcpAddress)
-    if err := tcpClient.Dial(); err != nil {
-        fmt.Println("AppsClient.Main error", err.Error())
-        return err
+    if app.tcpAddress != "" {
+        tcpClient := bzc.NewTcpClient(app.tcpAddress)
+        if err := tcpClient.Dial(); err != nil {
+            fmt.Println("AppsClient.Main tcp error", err.Error())
+            return err
+        }
+        app.tcpClient = tcpClient
     }
-    app.tcpClient = tcpClient
+    if app.udpAddress != "" {
+        udpClient := bzc.NewUdpClient(app.udpAddress)
+        if err := udpClient.Dial(); err != nil {
+            fmt.Println("AppsClient.Main udp error", err.Error())
+            return err
+        }
+        app.udpClient = udpClient
+    }
     // go app.handleSender()
     // go app.handleRecevicer()
     return app.wait()

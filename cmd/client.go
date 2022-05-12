@@ -35,12 +35,14 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("client called")
         tcpAddress, _ := cmd.Flags().GetString("tcp-address")
+        udpAddress, _ := cmd.Flags().GetString("udp-address")
         maxBufferLen, _ := cmd.Flags().GetInt("max-buffer-len")
         sendPeroidMs, _ := cmd.Flags().GetInt("send-peroid-ms")
         recvCheck, _ := cmd.Flags().GetBool("recv-check")
 
 
-        appsClient := client.NewAppsClient(tcpAddress)
+        appsClient := client.NewAppsClient()
+        appsClient.SetTcpAddress(tcpAddress).SetUdpAddress(udpAddress)
         appsClient.SetMaxBufferLen(maxBufferLen).SetSendPeroid(sendPeroidMs).SetRecvCheck(recvCheck).Main()
 	},
 }
@@ -48,8 +50,9 @@ to quickly create a Cobra application.`,
 func init() {
 	rootCmd.AddCommand(clientCmd)
 
-	clientCmd.Flags().StringP("tcp-address", "t", "127.0.0.1:7788", "TCP Address")
-	clientCmd.Flags().IntP("max-buffer-len", "l", 10, "Max Buffer Length")
-	clientCmd.Flags().IntP("send-peroid-ms", "p", 5, "Send Peroid Ms.")
+	clientCmd.Flags().StringP("tcp-address", "t", "", "TCP Address")
+	clientCmd.Flags().StringP("udp-address", "u", "127.0.0.1:7789", "UDP Address")
+	clientCmd.Flags().IntP("max-buffer-len", "l", 1024, "Max Buffer Length")
+	clientCmd.Flags().IntP("send-peroid-ms", "p", 100, "Send Peroid Ms.")
 	clientCmd.Flags().BoolP("recv-check", "c", false, "Recv Check, false is mean to close connection.")
 }
