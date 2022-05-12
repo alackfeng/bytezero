@@ -131,7 +131,7 @@ func (app *AppsClient) handleRecevicer() {
                 break
             }
         }
-        fmt.Printf("AppsClient.handleRecevicer recv - bps %d/100s.\n", app.recvStat.Bps1s())
+        // fmt.Printf("AppsClient.handleRecevicer recv - bps %s.\n", utils.ByteSizeFormat(app.recvStat.Bps1s()/100))
     }
     app.recvStat.End()
     fmt.Printf("AppsClient.handleRecevicer - end... %v.\n", app.recvStat.InfoAll())

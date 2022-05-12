@@ -20,6 +20,7 @@ type StatBandwidth struct {
 // Begin -
 func (s *StatBandwidth) Begin() {
     s.BeginTime = time.Now()
+    s.nextTime = time.Now()
 }
 
 // End -
@@ -31,7 +32,9 @@ func (s *StatBandwidth) End() {
 func (s *StatBandwidth) Inc(b int64) {
     s.Count += 1
     s.Bytes += b
-    s.nextTime = time.Now()
+    if s.nextTime.IsZero() {
+        s.nextTime = time.Now()
+    }
     s.nextBytes += b
 }
 
@@ -73,4 +76,21 @@ func (s *StatBandwidth) Info() string {
 
 func (s *StatBandwidth) InfoAll() string {
     return fmt.Sprintf("(time: %s => %s<dura:%d ms>) - %d bytes(%d count)", s.BeginTime.Format("2006-01-02 15:04:05.999999999"), s.EndTime.Format("2006-01-02 15:04:05.999999999"), s.EndTime.Sub(s.BeginTime), s.Bytes, s.Count)
+}
+
+// ByteSizeFormat -
+func ByteSizeFormat(s int64) string {
+    if s < 1024 {
+        return fmt.Sprintf("%.2fB", float64(s)/float64(1))
+    } else if s < (1024 * 1024) {
+        return fmt.Sprintf("%.2fKB", float64(s)/float64(1024))
+    } else if s < (1024 * 1024 * 1024) {
+        return fmt.Sprintf("%.2fMB", float64(s)/float64(1024*1024))
+    } else if s < (1024 * 1024 * 1024 * 1024) {
+        return fmt.Sprintf("%.2fGB", float64(s)/float64(1024*1024*1024))
+    } else if s < (1024 * 1024 * 1024 * 1024 * 1024) {
+        return fmt.Sprintf("%.2fTB", float64(s)/float64(1024*1024*1024*1024))
+    } else {
+        return fmt.Sprintf("%.2fEB", float64(s)/float64(1024*1024*1024*1024*1024))
+    }
 }
