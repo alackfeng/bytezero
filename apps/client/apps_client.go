@@ -208,18 +208,18 @@ func (app *AppsClient) handleUdpSender() {
     }
     app.sendStat.Begin()
     buffer := utils.RandomBytes(app.sendBufferLen, nil)
-    // sendDuration := time.Duration(app.sendPeriod) * time.Millisecond
-    // ticker := time.NewTicker(sendDuration)
-    // defer ticker.Stop()
+    sendDuration := time.Duration(app.sendPeriod) * time.Millisecond
+    ticker := time.NewTicker(sendDuration)
+    defer ticker.Stop()
     fmt.Printf("AppsClient.handleUdpSender - send duration %d ms, buffer len %d, begin time %v.\n", app.sendPeriod, app.sendBufferLen, app.sendStat.InfoAll())
     bQuit := false
     for {
         select {
         case <- app.done:
             bQuit = true
-        // case <- ticker.C:
-        default:
-            // dura := utils.NewDuration()
+        case <- ticker.C:
+        // default:
+            dura := utils.NewDuration()
             n, err := app.udpClient.Write(buffer)
             if err != nil {
                 fmt.Printf("AppsClient.handleUdpSender - send error.%v.\n", err.Error())
@@ -231,9 +231,9 @@ func (app *AppsClient) handleUdpSender() {
             }
             // fmt.Printf("send buffer No.%d, len %d, real %d. =>%v.\n", app.sentCount, app.sendBufferLen, n, buffer[0:10])
             // fmt.Printf("send buffer No.%d, len %d, real %d.\n", app.sentCount, app.sendBufferLen, n)
-            // if app.sendStat.Count % 1000 == 0 {
-            //     fmt.Printf("send buffer No.%d, len %d, real %d. dura %d ms.\n", app.sendStat.Count, app.sendBufferLen, n, dura.DuraMs())
-            // }
+            if app.sendStat.Count % 1000 == 0 {
+                fmt.Printf("send buffer No.%d, len %d, real %d. dura %d ms.\n", app.sendStat.Count, app.sendBufferLen, n, dura.DuraMs())
+            }
             // fmt.Printf("send buffer No.%d, len %d, real %d. dura %d ms. =>%s.\n", app.sentCount, app.sendBufferLen, n, dura.DuraMs(), string(buffer[0:10]))
             app.sendStat.Inc(int64(n))
         }
