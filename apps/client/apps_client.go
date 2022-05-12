@@ -114,6 +114,7 @@ func (app *AppsClient) handleSender() {
 // handleRecevicer -
 func (app *AppsClient) handleRecevicer() {
     buffer := make([]byte, app.recvBufferLen)
+    currTime := time.Now()
     for {
         n, err := app.tcpClient.Read(buffer)
         if err != nil {
@@ -126,12 +127,15 @@ func (app *AppsClient) handleRecevicer() {
         }
         app.recvStat.Inc(int64(n))
         if n != app.recvBufferLen {
-            fmt.Printf("AppsClient.handleRecevicer recv buffer len %d not equal send buffer, real %d.\n", app.recvBufferLen, n)
+            // fmt.Printf("AppsClient.handleRecevicer recv buffer len %d not equal send buffer, real %d.\n", app.recvBufferLen, n)
             if app.recvCheck {
                 break
             }
         }
-        // fmt.Printf("AppsClient.handleRecevicer recv - bps %s.\n", utils.ByteSizeFormat(app.recvStat.Bps1s()/100))
+        if time.Now().Sub(currTime).Milliseconds() > 1000 {
+            currTime = time.Now()
+            fmt.Printf("AppsClient.handleRecevicer recv - count %d, bps %s.\n", app.recvStat.Count, utils.ByteSizeFormat(app.recvStat.Bps1s()))
+        }
     }
     app.recvStat.End()
     fmt.Printf("AppsClient.handleRecevicer - end... %v.\n", app.recvStat.InfoAll())

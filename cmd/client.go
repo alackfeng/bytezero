@@ -49,7 +49,7 @@ func init() {
 	rootCmd.AddCommand(clientCmd)
 
 	clientCmd.Flags().StringP("tcp-address", "t", "127.0.0.1:7788", "TCP Address")
-	clientCmd.Flags().IntP("max-buffer-len", "l", 1024*1024*1, "Max Buffer Length")
-	clientCmd.Flags().IntP("send-peroid-ms", "p", 10, "Send Peroid Ms.")
+	clientCmd.Flags().IntP("max-buffer-len", "l", 10, "Max Buffer Length")
+	clientCmd.Flags().IntP("send-peroid-ms", "p", 5, "Send Peroid Ms.")
 	clientCmd.Flags().BoolP("recv-check", "c", false, "Recv Check, false is mean to close connection.")
 }
