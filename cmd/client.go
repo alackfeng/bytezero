@@ -37,9 +37,11 @@ to quickly create a Cobra application.`,
         tcpAddress, _ := cmd.Flags().GetString("tcp-address")
         maxBufferLen, _ := cmd.Flags().GetInt("max-buffer-len")
         sendPeroidMs, _ := cmd.Flags().GetInt("send-peroid-ms")
+        recvCheck, _ := cmd.Flags().GetBool("recv-check")
+
 
         appsClient := client.NewAppsClient(tcpAddress)
-        appsClient.SetMaxBufferLen(maxBufferLen).SetSendPeroid(sendPeroidMs).Main()
+        appsClient.SetMaxBufferLen(maxBufferLen).SetSendPeroid(sendPeroidMs).SetRecvCheck(recvCheck).Main()
 	},
 }
 
@@ -49,4 +51,5 @@ func init() {
 	clientCmd.Flags().StringP("tcp-address", "t", "127.0.0.1:7788", "TCP Address")
 	clientCmd.Flags().IntP("max-buffer-len", "l", 1024*1024*1, "Max Buffer Length")
 	clientCmd.Flags().IntP("send-peroid-ms", "p", 10, "Send Peroid Ms.")
+	clientCmd.Flags().BoolP("recv-check", "c", false, "Recv Check, false is mean to close connection.")
 }

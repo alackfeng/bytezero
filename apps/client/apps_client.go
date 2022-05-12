@@ -13,6 +13,7 @@ import (
 const maxBufferLen int = 1024 * 1024 * 1
 const sendPeroid int = 1000 // ms.
 
+
 // AppsClient - 测试客户端.
 type AppsClient struct {
     done chan bool
@@ -22,17 +23,20 @@ type AppsClient struct {
     sendPeriod int // Microsecond
     sendBufferLen int // bytes.
     recvBufferLen int //
+    recvCheck bool // false, close connection.
 
 
     // stats.
-    sentCount int64 //
-    sentBytes int64
-    sendBeginTime time.Time
-    sendEndTime time.Time
-    recvCount int64
-    recvBytes int64
-    recvBeginTime time.Time
-    recvEndTime time.Time
+    sendStat utils.StatBandwidth
+    // sentCount int64 //
+    // sentBytes int64
+    // sendBeginTime time.Time
+    // sendEndTime time.Time
+    recvStat utils.StatBandwidth
+    // recvCount int64
+    // recvBytes int64
+    // recvBeginTime time.Time
+    // recvEndTime time.Time
 
 }
 
@@ -43,6 +47,7 @@ func NewAppsClient(tcpAddress string) *AppsClient {
         sendPeriod: sendPeroid,
         sendBufferLen: maxBufferLen,
         recvBufferLen: maxBufferLen,
+        recvCheck: false,
         tcpAddress: tcpAddress,
     }
     return c
@@ -50,8 +55,8 @@ func NewAppsClient(tcpAddress string) *AppsClient {
 
 // show -
 func (app *AppsClient) show() {
-    fmt.Printf("send (time: %v => %v) - %v bytes(%v count)\n", app.sendBeginTime.Format("2006-01-02 15:04:05.999999999"), app.sendEndTime.Format("2006-01-02 15:04:05.999999999"), app.sentBytes, app.sentCount)
-    fmt.Printf("recv (time: %v => %v) - %v bytes(%v count)\n", app.recvBeginTime.Format("2006-01-02 15:04:05.999999999"), app.recvEndTime.Format("2006-01-02 15:04:05.999999999"), app.recvBytes, app.recvCount)
+    fmt.Printf("send %v\n", app.sendStat)
+    fmt.Printf("recv %v\n", app.recvStat)
 }
 
 // SetSendPeroid -
@@ -67,15 +72,21 @@ func (app *AppsClient) SetMaxBufferLen(len int) *AppsClient {
     return app
 }
 
+// SetRecvCheck -
+func (app *AppsClient) SetRecvCheck(check bool) *AppsClient {
+    app.recvCheck = check
+    return app
+}
+
 // handleSender -
 func (app *AppsClient) handleSender() {
-    app.sendBeginTime = time.Now()
+    app.sendStat.Begin()
     // buffer := make([]byte, app.sendBufferLen)
     buffer := utils.RandomBytes(app.sendBufferLen, nil)
     sendDuration := time.Duration(app.sendPeriod) * time.Millisecond
     ticker := time.NewTicker(sendDuration)
     defer ticker.Stop()
-    fmt.Printf("AppsClient.handleSender - send duration %d ms, buffer len %d, begin time %v.\n", app.sendPeriod, app.sendBufferLen, app.sendBeginTime.Format("2006-01-02 15:04:05"))
+    fmt.Printf("AppsClient.handleSender - send duration %d ms, buffer len %d, begin time %v.\n", app.sendPeriod, app.sendBufferLen, app.sendStat.InfoAll())
     bQuit := false
     for {
         select {
@@ -94,17 +105,18 @@ func (app *AppsClient) handleSender() {
             }
             // fmt.Printf("send buffer No.%d, len %d, real %d. =>%v.\n", app.sentCount, app.sendBufferLen, n, buffer[0:10])
             // fmt.Printf("send buffer No.%d, len %d, real %d.\n", app.sentCount, app.sendBufferLen, n)
-            fmt.Printf("send buffer No.%d, len %d, real %d. dura %d ms.\n", app.sentCount, app.sendBufferLen, n, dura.DuraMs())
+            if app.sendStat.Count % 1000 == 0 {
+                fmt.Printf("send buffer No.%d, len %d, real %d. dura %d ms.\n", app.sendStat.Count, app.sendBufferLen, n, dura.DuraMs())
+            }
             // fmt.Printf("send buffer No.%d, len %d, real %d. dura %d ms. =>%s.\n", app.sentCount, app.sendBufferLen, n, dura.DuraMs(), string(buffer[0:10]))
-            app.sentCount += 1
-            app.sentBytes += int64(n)
+            app.sendStat.Inc(int64(n))
         }
         if bQuit == true {
             break
         }
     }
-    app.sendEndTime = time.Now()
-    fmt.Printf("AppsClient.handleSender - send duration %d ms, buffer len %d, end time %v ms(dura %v ms).\n", app.sendPeriod, app.sendBufferLen, app.sendEndTime.Format("2006-01-02 15:04:05"), app.sendEndTime.Sub(app.sendBeginTime))
+    app.sendStat.End()
+    fmt.Printf("AppsClient.handleSender - send duration %d ms, buffer len %d, %v.\n", app.sendPeriod, app.sendBufferLen, app.sendStat.InfoAll())
 }
 
 // handleRecevicer -
@@ -116,19 +128,20 @@ func (app *AppsClient) handleRecevicer() {
             fmt.Printf("AppsClient.handleRecevicer error.%v.\n", err.Error())
             break
         }
-        if app.recvCount == 0 {
-            app.recvBeginTime = time.Now()
-            fmt.Printf("AppsClient.handleRecevicer - begin. recv begin %v.\n", app.recvBeginTime)
+        if app.recvStat.Bytes == 0 {
+            app.recvStat.Begin()
+            fmt.Printf("AppsClient.handleRecevicer - begin. recv begin %v.\n", app.recvStat.Info())
         }
-        app.recvCount += 1
-        app.recvBytes += int64(n)
+        app.recvStat.Inc(int64(n))
         if n != app.recvBufferLen {
             fmt.Printf("AppsClient.handleRecevicer recv buffer len %d not equal send buffer, real %d.\n", app.recvBufferLen, n)
-            break
+            if app.recvCheck {
+                break
+            }
         }
     }
-    app.recvEndTime = time.Now()
-    fmt.Printf("AppsClient.handleRecevicer - end... recv begin %v, end %v, dura %v.\n", app.recvBeginTime, app.recvEndTime, app.recvEndTime.Sub(app.recvBeginTime))
+    app.recvStat.End()
+    fmt.Printf("AppsClient.handleRecevicer - end... %v.\n", app.recvStat.InfoAll())
     app.done <- true
 }
 
