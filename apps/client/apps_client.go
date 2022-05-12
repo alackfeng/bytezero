@@ -28,15 +28,7 @@ type AppsClient struct {
 
     // stats.
     sendStat utils.StatBandwidth
-    // sentCount int64 //
-    // sentBytes int64
-    // sendBeginTime time.Time
-    // sendEndTime time.Time
     recvStat utils.StatBandwidth
-    // recvCount int64
-    // recvBytes int64
-    // recvBeginTime time.Time
-    // recvEndTime time.Time
 
 }
 
@@ -139,6 +131,7 @@ func (app *AppsClient) handleRecevicer() {
                 break
             }
         }
+        fmt.Printf("AppsClient.handleRecevicer recv - bps %d/100s.\n", app.recvStat.Bps1s())
     }
     app.recvStat.End()
     fmt.Printf("AppsClient.handleRecevicer - end... %v.\n", app.recvStat.InfoAll())
