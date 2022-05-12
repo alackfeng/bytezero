@@ -54,7 +54,7 @@ func init() {
 
 	log.WithFields(logrus.Fields{
 		"animal": "log",
-	}).Info("Init smartnet Logger.")
+	}).Info("Init Logger.")
 }
 
 // SetLogout -  设置日志输出位置.
