@@ -3,6 +3,7 @@ package client
 import (
 	"bufio"
 	"fmt"
+	"math/rand"
 	"os"
 	"time"
 
@@ -92,6 +93,7 @@ func (app *AppsClient) handleSender() {
     }
     app.sendStat.Begin()
     // buffer := make([]byte, app.sendBufferLen)
+    rand.Seed(time.Now().UnixNano())
     buffer := utils.RandomBytes(app.sendBufferLen, nil)
     // sendDuration := time.Duration(app.sendPeriod) * time.Millisecond
     // ticker := time.NewTicker(sendDuration)
@@ -105,15 +107,16 @@ func (app *AppsClient) handleSender() {
         // case <- ticker.C:
         default:
             // dura := utils.NewDuration()
-            n, err := app.tcpClient.Write(buffer)
+            curr := rand.Intn(app.sendBufferLen)
+            n, err := app.tcpClient.Write(buffer[0:curr])
             if err != nil {
                 fmt.Printf("AppsClient.handleSender - send error.%v.\n", err.Error())
                 break
             }
-            if n != app.sendBufferLen {
-                fmt.Printf("AppsClient.handleSender - send buffer len %d not equal real sent %d.\n", app.sendBufferLen, n)
-                break
-            }
+            // if n != app.sendBufferLen {
+            //     fmt.Printf("AppsClient.handleSender - send buffer len %d not equal real sent %d.\n", app.sendBufferLen, n)
+            //     break
+            // }
             // fmt.Printf("send buffer No.%d, len %d, real %d. =>%v.\n", app.sentCount, app.sendBufferLen, n, buffer[0:10])
             // fmt.Printf("send buffer No.%d, len %d, real %d.\n", app.sentCount, app.sendBufferLen, n)
             // if app.sendStat.Count % 1000 == 0 {
@@ -121,7 +124,7 @@ func (app *AppsClient) handleSender() {
             // }
             // fmt.Printf("send buffer No.%d, len %d, real %d. dura %d ms. =>%s.\n", app.sentCount, app.sendBufferLen, n, dura.DuraMs(), string(buffer[0:10]))
             app.sendStat.Inc(int64(n))
-            if app.sendStat.Count % 100 == 0 {
+            if app.sendStat.Count % 1000 == 0 {
                 time.Sleep(time.Millisecond*10)
             }
         }
@@ -138,6 +141,7 @@ func (app *AppsClient) handleRecevicer() {
     if app.tcpAddress == "" {
         return
     }
+
     buffer := make([]byte, app.recvBufferLen)
     currTime := time.Now()
     for {
