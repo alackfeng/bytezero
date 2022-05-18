@@ -107,7 +107,7 @@ func (app *AppsClient) handleSender() {
         // case <- ticker.C:
         default:
             // dura := utils.NewDuration()
-            curr := rand.Intn(app.sendBufferLen)
+            curr := app.sendBufferLen // rand.Intn(app.sendBufferLen)
             n, err := app.tcpClient.Write(buffer[0:curr])
             if err != nil {
                 fmt.Printf("AppsClient.handleSender - send error.%v.\n", err.Error())
@@ -270,6 +270,8 @@ func (app *AppsClient) wait() error {
         } else if cmd == "udp" {
             go app.handleUdpRecevicer()
             go app.handleUdpSender()
+        } else if cmd == "stop" {
+            app.done <- true
         } else {
             fmt.Printf("cmd => (%v) not impliment.\r\n", cmd)
         }

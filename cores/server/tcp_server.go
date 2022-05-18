@@ -84,7 +84,7 @@ func (t *TcpServer) handleConn(conn *net.TCPConn) error {
         if err != nil {
             return err
         }
-        if count % 100 == 0 {
+        if count % 1000 == 0 {
             fmt.Printf("No.%d: read %d, write %d.\n", count, len, wlen)
         }
         count += 1
