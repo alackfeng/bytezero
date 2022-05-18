@@ -30,8 +30,27 @@ func NewBytezeroNet(ctx context.Context, done chan bool) *BytezeroNet {
         tsAddr: ":7788",
         usAddr: ":7789",
         maxBufferLen: 1024*1024*10,
-        rwBufferLen: 1024*1024*50,
+        rwBufferLen: 1024,
     }
+    return bzn
+}
+
+// SetMaxBufferLen -
+func (bzn *BytezeroNet) SetPort(port int) *BytezeroNet {
+    bzn.tsAddr = ":" + utils.IntToString(port)
+    bzn.usAddr = ":" + utils.IntToString(port+1)
+    return bzn
+}
+
+// SetMaxBufferLen -
+func (bzn *BytezeroNet) SetMaxBufferLen(n int) *BytezeroNet {
+    bzn.maxBufferLen = n
+    return bzn
+}
+
+// SetRWBufferLen -
+func (bzn *BytezeroNet) SetRWBufferLen(n int) *BytezeroNet {
+    bzn.rwBufferLen = n
     return bzn
 }
 

@@ -121,8 +121,8 @@ func (app *AppsClient) handleSender() {
             // }
             // fmt.Printf("send buffer No.%d, len %d, real %d. dura %d ms. =>%s.\n", app.sentCount, app.sendBufferLen, n, dura.DuraMs(), string(buffer[0:10]))
             app.sendStat.Inc(int64(n))
-            if app.sendStat.Count % 10000 == 0 {
-                time.Sleep(time.Millisecond*3)
+            if app.sendStat.Count % 100 == 0 {
+                time.Sleep(time.Millisecond*10)
             }
         }
         if bQuit == true {

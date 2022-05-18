@@ -39,6 +39,9 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("bytezero server called")
 
+        maxBufferLen, _ := cmd.Flags().GetInt("max-buffer-len")
+        rwBufferLen, _ := cmd.Flags().GetInt("rw-buffer-len")
+        port, _ := cmd.Flags().GetInt("port")
 
         done := make(chan bool)
 		sigs := make(chan os.Signal, 1)
@@ -50,7 +53,7 @@ to quickly create a Cobra application.`,
 			close(done)
 		}()
         bzn := bze.NewBytezeroNet(ctx, done)
-        bzn.Main()
+        bzn.SetPort(port).SetMaxBufferLen(maxBufferLen).SetRWBufferLen(rwBufferLen).Main()
 
         logcmd.Errorln("main listen...")
 		bQuit := false
@@ -83,13 +86,8 @@ to quickly create a Cobra application.`,
 func init() {
 	rootCmd.AddCommand(serverCmd)
 
-	// Here you will define your flags and configuration settings.
+	serverCmd.Flags().IntP("max-buffer-len", "m", 1024*1024*10, "Max Buffer Length")
+	serverCmd.Flags().IntP("rw-buffer-len", "b", 1024, "Read and Write Buffer Length")
+	serverCmd.Flags().IntP("port", "p", 7788, "tcp or udp server listen port")
 
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// serverCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// serverCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
