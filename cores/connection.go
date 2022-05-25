@@ -101,10 +101,6 @@ func (c *Connection) handleRecevier() error {
             continue
         }
         fmt.Printf("Connection handleRecevier - buffer len %d, Unmarshal %d.\n", len, out.Len())
-        switch out.Type {
-        case protocol.Method_CHANNEL_CREATE:
-
-        }
         c.bzn.HandlePt(c, out)
 
         // wlen, err := c.Write(buffer[0:len])

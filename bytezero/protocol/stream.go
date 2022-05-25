@@ -5,6 +5,18 @@ import (
 	"fmt"
 )
 
+// StreamState -
+type StreamState uint32
+const (
+    StreamStateNone StreamState = 0x0
+    StreamStateCreate
+    StreamStateOpen
+    StreamStateFailed
+    StreamStateClosing
+    StreamStateClosed
+    StreamStateMax
+)
+
 // StreamId -
 type StreamId uint32
 
@@ -59,6 +71,8 @@ func (c *StreamCreatePt) Marshal(buf []byte) ([]byte, error) {
 /////////////////////////StreamAckPt++++++++++++++++++++++++++++++++
 // StreamAckPt -
 type StreamAckPt struct {
+    Code ErrCode `form:"Code" json:"Code" xml:"Code" bson:"Code" binding:"required"` // ack Code.
+    Message string `form:"Message" json:"Message" xml:"Message" bson:"Message" binding:"required"` // ack Message.
     Id StreamId `form:"Id" json:"Id" xml:"Id" bson:"Id" binding:"required"` // stream id.
 }
 var _ BZProtocol = (*StreamAckPt)(nil)

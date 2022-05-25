@@ -4,6 +4,21 @@ import (
 	"encoding/binary"
 )
 
+// ChannelState -
+type ChannelState uint32
+const (
+    ChannelStateNone ChannelState = 0x0
+    ChannelStateCreate
+    ChannelStateOpen
+    ChannelStateFailed
+    ChannelStateClosing
+    ChannelStateClosed
+    ChannelStateMax
+)
+
+
+
+
 /////////////////////////ChannelCreatePt++++++++++++++++++++++++++++++++
 // ChannelCreatePt -
 type ChannelCreatePt struct {
@@ -57,7 +72,9 @@ func (c *ChannelCreatePt) Marshal(buf []byte) ([]byte, error) {
 /////////////////////////ChannelAckPt++++++++++++++++++++++++++++++++
 // ChannelAckPt -
 type ChannelAckPt struct {
-    Id ChannelId `form:"Id" json:"Id" xml:"Id" bson:"Id" binding:"required"` // channel id.
+    Code ErrCode `form:"Code" json:"Code" xml:"Code" bson:"Code" binding:"required"` // ack Code.
+    Message string `form:"Message" json:"Message" xml:"Message" bson:"Message" binding:"required"` // ack Message.
+    Id ChannelId `form:"Id" json:"Id" xml:"Id" bson:"Id" binding:"required"` // channel Id.
 }
 var _ BZProtocol = (*ChannelAckPt)(nil)
 

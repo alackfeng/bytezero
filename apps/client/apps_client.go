@@ -13,10 +13,13 @@ import (
 
 const maxBufferLen int = 1024 * 1024 * 1
 const sendPeroid int = 1000 // ms.
+const appId = "appId_Bytezero_PcGo"
+const appKey = "appId_Bytezero_PcGo_miss"
 
 
 // AppsClient - 测试客户端.
 type AppsClient struct {
+    AppsChannels
     done chan bool
 
     tcpAddress string
@@ -30,12 +33,16 @@ type AppsClient struct {
     recvBufferLen int //
     recvCheck bool // false, close connection.
 
+    deviceId string
+    sessionId string
+
 
     // stats.
     sendStat utils.StatBandwidth
     recvStat utils.StatBandwidth
 
 }
+var _ Client = (*AppsClient)(nil)
 
 // NewAppsClient -
 func NewAppsClient() *AppsClient {
@@ -47,6 +54,31 @@ func NewAppsClient() *AppsClient {
         recvCheck: false,
     }
     return c
+}
+
+// MaxRecvBufferLen - Client interface.
+func (app *AppsClient) MaxRecvBufferLen() int {
+    return app.recvBufferLen
+}
+
+// AppId - Client interface.
+func (app *AppsClient) AppId() string {
+    return appId
+}
+
+// DeviceId - Client interface.
+func (app *AppsClient) DeviceId() string {
+    return app.deviceId
+}
+
+// SessionId - Client interface.
+func (app *AppsClient) SessionId() string {
+    return app.deviceId + "_" + app.sessionId
+}
+
+// TargetAddress -
+func (app *AppsClient) TargetAddress() string {
+    return app.tcpAddress
 }
 
 // show -
@@ -85,6 +117,22 @@ func (app *AppsClient) SetUdpAddress(address string) *AppsClient {
     app.udpAddress = address
     return app
 }
+
+// SetDeviceId -
+func (app *AppsClient) SetDeviceId(deviceId string) *AppsClient {
+    app.deviceId = deviceId
+    return app
+}
+
+// SetSessionId -
+func (app *AppsClient) SetSessionId(sessionId string) *AppsClient {
+    app.sessionId = sessionId
+    return app
+}
+
+
+
+
 
 // handleSender -
 func (app *AppsClient) handleSender() {
@@ -141,6 +189,7 @@ func (app *AppsClient) handleRecevicer() {
     if app.tcpAddress == "" {
         return
     }
+
 
     buffer := make([]byte, app.recvBufferLen)
     currTime := time.Now()
@@ -264,12 +313,12 @@ func (app *AppsClient) wait() error {
             break
         } else if cmd == "info" || cmd == "i" {
             app.show()
-        } else if cmd == "send" {
-            go app.handleRecevicer()
-            go app.handleSender()
-        } else if cmd == "udp" {
-            go app.handleUdpRecevicer()
-            go app.handleUdpSender()
+        // } else if cmd == "send" {
+        //     go app.handleRecevicer()
+        //     go app.handleSender()
+        // } else if cmd == "udp" {
+        //     go app.handleUdpRecevicer()
+        //     go app.handleUdpSender()
         } else if cmd == "stop" {
             app.done <- true
         } else {
@@ -283,22 +332,26 @@ func (app *AppsClient) wait() error {
 
 // Main -
 func (app *AppsClient) Main() error {
-    if app.tcpAddress != "" {
-        tcpClient := bzc.NewTcpClient(app.tcpAddress)
-        if err := tcpClient.Dial(); err != nil {
-            fmt.Println("AppsClient.Main tcp error", err.Error())
-            return err
-        }
-        app.tcpClient = tcpClient
-    }
-    if app.udpAddress != "" {
-        udpClient := bzc.NewUdpClient(app.udpAddress)
-        if err := udpClient.Dial(); err != nil {
-            fmt.Println("AppsClient.Main udp error", err.Error())
-            return err
-        }
-        app.udpClient = udpClient
-    }
+    // if app.deviceId == "" {
+    //     fmt.Println("AppsClient.Main - Please set Device Id.")
+    //     return fmt.Errorf("Please set Device Id")
+    // }
+    // if app.tcpAddress != "" {
+    //     tcpClient := bzc.NewTcpClient(app.tcpAddress)
+    //     if err := tcpClient.Dial(); err != nil {
+    //         fmt.Println("AppsClient.Main tcp error", err.Error())
+    //         return err
+    //     }
+    //     app.tcpClient = tcpClient
+    // }
+    // if app.udpAddress != "" {
+    //     udpClient := bzc.NewUdpClient(app.udpAddress)
+    //     if err := udpClient.Dial(); err != nil {
+    //         fmt.Println("AppsClient.Main udp error", err.Error())
+    //         return err
+    //     }
+    //     app.udpClient = udpClient
+    // }
     // go app.handleSender()
     // go app.handleRecevicer()
     return app.wait()
