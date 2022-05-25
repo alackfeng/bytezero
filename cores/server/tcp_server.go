@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 
+	bz "github.com/alackfeng/bytezero/bytezero"
 	"github.com/alackfeng/bytezero/cores/utils"
 )
 
@@ -11,6 +12,7 @@ var logsv = utils.Logger(utils.Fields{"animal": "server"})
 
 // TcpServer -
 type TcpServer struct {
+    bzn bz.BZNet
     network string
     address string
     maxBufferLen int // recv max buffer len
@@ -19,8 +21,9 @@ type TcpServer struct {
 }
 
 // NewTcpServer -
-func NewTcpServer(address string, maxBufferLen int, rwBufferLen int) *TcpServer {
+func NewTcpServer(bzn bz.BZNet, address string, maxBufferLen int, rwBufferLen int) *TcpServer {
     return &TcpServer{
+        bzn: bzn,
         network: "tcp",
         address: address,
         maxBufferLen: maxBufferLen,
@@ -49,15 +52,14 @@ func (t *TcpServer) Listen() error {
             break
         }
         logsv.Infof("TcpServer Accept Remote<%v> - Local<%v>.", tcpConn.RemoteAddr().String(), tcpConn.LocalAddr().String())
-        go t.handleConn(tcpConn)
-
+        t.bzn.HandleConn(tcpConn)
     }
     logsv.Debugln("TcpServer Listen over..")
     return err
 }
 
-// handleConn -
-func (t *TcpServer) handleConn(conn *net.TCPConn) error {
+// handleEcho -
+func (t *TcpServer) handleEcho(conn *net.TCPConn) error {
     if t.readBufferLen > 1024 {
         conn.SetReadBuffer(t.readBufferLen)
     }
