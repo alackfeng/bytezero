@@ -40,8 +40,12 @@ to quickly create a Cobra application.`,
         sendPeroidMs, _ := cmd.Flags().GetInt("send-peroid-ms")
         recvCheck, _ := cmd.Flags().GetBool("recv-check")
         sessionId, _ := cmd.Flags().GetString("session-id")
-        deviceId, _ := cmd.Flags().GetString("devcie-id")
+        deviceId, _ := cmd.Flags().GetString("device-id")
 
+        // if err := checkMust(deviceId, tcpAddress, sessionId); err != nil {
+        //     fmt.Println(err.Error())
+        //     return
+        // }
 
         appsClient := client.NewAppsClient()
         appsClient.SetTcpAddress(tcpAddress).SetUdpAddress(udpAddress)
@@ -50,14 +54,28 @@ to quickly create a Cobra application.`,
 	},
 }
 
+// checkMust -
+func checkMust(deviceId, tcpAddress, sessionId string) error {
+    if deviceId == "" {
+        return fmt.Errorf("Set device-id Pararm")
+    }
+    if tcpAddress == "" {
+        return fmt.Errorf("Set tcp-address Pararm")
+    }
+    if sessionId == "" {
+        return fmt.Errorf("Set session-id Pararm")
+    }
+    return nil
+}
+
 func init() {
 	rootCmd.AddCommand(clientCmd)
 
 	clientCmd.Flags().StringP("tcp-address", "t", "", "TCP Address 127.0.0.1:7788")
 	clientCmd.Flags().StringP("udp-address", "u", "", "UDP Address 127.0.0.1:7789")
-	clientCmd.Flags().IntP("max-buffer-len", "l", 1024, "Max Buffer Length")
+	clientCmd.Flags().IntP("max-buffer-len", "l", 1024*10, "Max Buffer Length")
 	clientCmd.Flags().IntP("send-peroid-ms", "p", 1, "Send Peroid Ms.")
 	clientCmd.Flags().BoolP("recv-check", "c", false, "Recv Check, false is mean to close connection.")
-	clientCmd.Flags().StringP("session-id", "c", "0", "Session Id for Channel Create on Tcp.")
-	clientCmd.Flags().StringP("devcie-id", "c", "", "Device Id for app.")
+	clientCmd.Flags().StringP("session-id", "s", "bytezero-session-id-0", "Session Id for Channel Create on Tcp.")
+	clientCmd.Flags().StringP("device-id", "d", "", "Device Id for app.")
 }

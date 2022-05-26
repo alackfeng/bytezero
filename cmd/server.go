@@ -87,7 +87,7 @@ func init() {
 	rootCmd.AddCommand(serverCmd)
 
 	serverCmd.Flags().IntP("max-buffer-len", "m", 1024*1024*10, "Max Buffer Length")
-	serverCmd.Flags().IntP("rw-buffer-len", "b", 1024, "Read and Write Buffer Length")
+	serverCmd.Flags().IntP("rw-buffer-len", "b", 1024*1024*1, "Read and Write Buffer Length")
 	serverCmd.Flags().IntP("port", "p", 7788, "tcp or udp server listen port")
 
 }

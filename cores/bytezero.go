@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sync"
 
 	bz "github.com/alackfeng/bytezero/bytezero"
 	"github.com/alackfeng/bytezero/bytezero/protocol"
@@ -23,6 +24,7 @@ type BytezeroNet struct {
     maxBufferLen int
     rwBufferLen int
 
+    l sync.Mutex
     connections map[string]*Connection
     channels map[string]*Channel
 }
@@ -37,6 +39,8 @@ func NewBytezeroNet(ctx context.Context, done chan bool) *BytezeroNet {
         usAddr: ":7789",
         maxBufferLen: 1024*1024*10,
         rwBufferLen: 1024,
+        connections: make(map[string]*Connection),
+        channels: make(map[string]*Channel),
     }
     return bzn
 }
@@ -64,7 +68,7 @@ func (bzn *BytezeroNet) SetRWBufferLen(n int) *BytezeroNet {
 func (bzn *BytezeroNet) Main() {
     logbz.Debugln("BytezeroNet Main...")
     go bzn.StartTcp()
-    go bzn.StartUdp()
+    // go bzn.StartUdp()
 }
 
 // Quit -
@@ -86,10 +90,11 @@ func (bzn *BytezeroNet) StartTcp() {
 
 // HandleConn -
 func (bzn *BytezeroNet) HandleConn(tcpConn *net.TCPConn) error {
+    bzn.l.Lock()
     conn := NewConnection(bzn, tcpConn).Main()
-    remoteId := conn.RemoteAddr().String()
-    bzn.connections[remoteId] = conn
-    logbz.Infof("BytezeroNet HandleConn - create connection client remote<%s>, local<%s>.", remoteId, conn.LocalAddr())
+    bzn.connections[conn.Id()] = conn
+    bzn.l.Unlock()
+    logbz.Infof("BytezeroNet HandleConn - create connection id:<%s>.", conn.Id())
     return nil
 }
 
@@ -99,23 +104,29 @@ func (bzn *BytezeroNet) HandlePt(conn bz.BZNetReceiver, commonPt *protocol.Commo
     switch commonPt.Type {
     case protocol.Method_CHANNEL_CREATE:
         channelCreatePb := protocol.NewChannelCreatePb()
-        if err := channelCreatePb.Unmarshal(commonPt.Payload); err != nil {
+        if err := commonPt.UnmarshalP(channelCreatePb); err != nil {
             return fmt.Errorf("ChannelCreatePb Unmarshal error.%v", err.Error())
         }
+        fmt.Println("BytezeroNet.HandlePt - ", channelCreatePb)
         if c, ok := conn.(*Connection); ok {
+            bzn.l.Lock()
             // Update DevcieId etc.
-            c.Set(channelCreatePb)
-
-            sessionId := string(channelCreatePb.SessionId)
-            if channel, ok := bzn.channels[sessionId]; ok {
-                channel.Join(c).Ack()
-            } else {
-                bzn.channels[sessionId] = NewChannel().Create(c)
+            if err := c.Set(channelCreatePb).Check(); err != nil {
+                logbz.Errorf("BytezeroNet.HandlePt - connection check error.", err.Error())
+                break
             }
+            if channel, ok := bzn.channels[c.ChannId()]; ok {
+                channel.Join(c).Ack(protocol.ErrCode_success, "ok")
+            } else {
+                bzn.channels[c.ChannId()] = NewChannel().Create(c)
+            }
+            bzn.l.Unlock()
         }
     case protocol.Method_STREAM_CREATE:
         fallthrough
     case protocol.Method_STREAM_ACK:
+        fallthrough
+    case protocol.Method_STREAM_DATA:
         fallthrough
     case protocol.Method_STREAM_CLOSE:
         if c, ok := conn.(*Connection); ok {

@@ -7,7 +7,36 @@ import (
 
 const FixedHead = 0xABCD
 
-const CurrentVersion = VersionFirst
+const CurrentVersion = Version20220526
+
+type Boolean uint8
+const (
+    BooleanFalse Boolean = iota
+    BooleanTrue
+)
+
+// To -
+func (b Boolean) To() bool {
+    return b == '1'
+}
+
+// From -
+func (b Boolean) From(bl bool) Boolean {
+    if bl == true {
+        b = '1'
+    } else {
+        b = '0'
+    }
+    return b
+}
+
+// String -
+func (b Boolean) String() string {
+    if b == BooleanTrue {
+        return "true"
+    }
+    return "false"
+}
 
 // BZProtocol -
 type BZProtocol interface {
@@ -20,7 +49,7 @@ type BZProtocol interface {
 /////////////////////////HeadPt++++++++++++++++++++++++++++++++
 // HeadPt.
 type HeadPt struct {
-    Fixed uint32 `form:"Fixed" json:"Fixed" xml:"Fixed" bson:"Fixed" binding:"required"`
+    Fixed uint16 `form:"Fixed" json:"Fixed" xml:"Fixed" bson:"Fixed" binding:"required"`
     Ver VersionNumber `form:"Ver" json:"Ver" xml:"Ver" bson:"Ver" binding:"required"`
     Type Method `form:"Type" json:"Type" xml:"Type" bson:"Type" binding:"required"`
 }
@@ -28,44 +57,44 @@ type HeadPt struct {
 // NewHeadPb -
 func NewHeadPb(method Method) *HeadPt {
     return &HeadPt{
-        Fixed: uint32(FixedHead),
+        Fixed: uint16(FixedHead),
         Ver: CurrentVersion,
         Type: method,
     }
 }
 
-// // SetPayloadLength -
-// func (c *HeadPt) SetPayloadLength(length int) *HeadPt {
-//     c.Length = uint32(length)
-//     return c
-// }
-
 // Len -
 func (c *HeadPt) Len() int {
     // Fixed + Ver + Type
-    return 4 + 2 + 1
+    return 2 + 1 + 1
 }
 
 // Pack -
 func (c *HeadPt) Pack(buf []byte) error {
-    binary.BigEndian.PutUint32(buf[0:4], c.Fixed)
-    binary.BigEndian.PutUint16(buf[4:6], uint16(c.Ver))
-    buf[6] = byte(c.Type)
-    // binary.BigEndian.PutUint16(buf[7:11], uint16(c.Length))
+    if len(buf) < c.Len() {
+        return ErrPackBufferNotEnought
+    }
+    i := 0
+    binary.BigEndian.PutUint16(buf[i:], c.Fixed); i += 2
+    buf[i] = byte(c.Ver); i += 1
+    buf[i] = byte(c.Type); i += 1
+    fmt.Printf("Pack: Fixed.0x%X, Ver.%v, Type.%v.\n", c.Fixed, c.Ver, c.Type)
     return nil
 }
 
 // UnPack -
 func (c *HeadPt) UnPack(buf []byte) error {
     if len(buf) < c.Len() {
-        return fmt.Errorf("HeadPt UnPack len %d less %d", len(buf), c.Len())
+        return ErrPackBufferNotEnought
     }
-    c.Fixed = binary.BigEndian.Uint32(buf[0:])
+    i := 0
+    c.Fixed = binary.BigEndian.Uint16(buf[i:]); i += 2
     if c.Fixed != FixedHead {
-        return fmt.Errorf("No Fixed Head")
+        return ErrNoFixedMe
     }
-    c.Ver = VersionNumber(binary.BigEndian.Uint16(buf[4:]))
-    c.Type = Method(buf[6])
+    c.Ver = VersionNumber(buf[i]); i += 1
+    c.Type = Method(buf[i]); i += 1
+    fmt.Printf("UnPack: Fixed.0x%X, Ver.%v, Type.%v.\n", c.Fixed, c.Ver, c.Type)
     return nil
 }
 
@@ -81,17 +110,13 @@ type CommonPt struct {
 // NewCommPb -
 func NewCommPb(method Method) *CommonPt {
     return &CommonPt{
-        HeadPt: HeadPt{
-            Fixed: uint32(FixedHead),
-            Ver: CurrentVersion,
-            Type: method,
-        },
+        HeadPt: *NewHeadPb(method),
     }
 }
 
 // Len -
 func (c *CommonPt) Len() int {
-    // Fixed + Ver + Type
+    // Head + Length + Payload
     return c.HeadPt.Len() + 4 + int(c.Length)
 }
 
@@ -108,15 +133,15 @@ func (c *CommonPt) Unmarshal(buf []byte) error {
         return err
     }
     l := len(buf)
-    n := c.HeadPt.Len() - 1
-    if n + 4 < l {
-        return fmt.Errorf("No Length")
+    i := c.HeadPt.Len()
+    if i + 4 > l {
+        return ErrNoLength
     }
-    c.Length = binary.BigEndian.Uint32(buf[n:]); n += 4
-    if n + int(c.Length) < l {
-        return fmt.Errorf("No Payload")
+    c.Length = binary.BigEndian.Uint32(buf[i:]); i += 4
+    if i + int(c.Length) > l {
+        return ErrNoPayload
     }
-    c.Payload = buf[n:]
+    c.Payload = buf[i:i+int(c.Length)]
     return nil
 }
 
@@ -127,10 +152,21 @@ func (c *CommonPt) Marshal() ([]byte, error) {
     if err := c.HeadPt.Pack(buf); err != nil {
         return nil, nil
     }
-    n := c.HeadPt.Len() - 1
-    binary.BigEndian.PutUint32(buf[n:], c.Length); n += 4
-    ByteCopy(buf, n, c.Payload, 0)
+    i := c.HeadPt.Len()
+    binary.BigEndian.PutUint32(buf[i:], c.Length); i += 4
+    ByteCopy(buf, i, c.Payload, 0)
     return buf, nil
+}
+
+// UnmarshalP - unmarshal payload to Type struct.
+func (c *CommonPt) UnmarshalP(m interface{}) error {
+    if pl, ok := m.(BZProtocol); ok {
+        if pl.Type() != c.Type {
+            return ErrBZProtocol
+        }
+        return pl.Unmarshal(c.Payload)
+    }
+    return ErrBZProtocol
 }
 
 // MarshalP -
@@ -141,11 +177,11 @@ func (c *CommonPt) MarshalP(m BZProtocol)([]byte, error) {
     if err := c.HeadPt.Pack(buf[0:]); err != nil {
         return nil, err
     }
-    n := c.HeadPt.Len() - 1
+    i := c.HeadPt.Len()
     // Length.
-    binary.BigEndian.PutUint32(buf[n:], uint32(m.Len())); n += 4
+    binary.BigEndian.PutUint32(buf[i:], uint32(m.Len())); i += 4
     // Payload.
-    if _, err := m.Marshal(buf[n:]); err != nil {
+    if _, err := m.Marshal(buf[i:]); err != nil {
         return nil, err
     }
     return buf, nil

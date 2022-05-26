@@ -8,7 +8,7 @@ import (
 // StreamState -
 type StreamState uint32
 const (
-    StreamStateNone StreamState = 0x0
+    StreamStateNone StreamState = iota
     StreamStateCreate
     StreamStateOpen
     StreamStateFailed
@@ -29,6 +29,7 @@ func (s StreamId) String() string {
 /////////////////////////StreamCreatePt++++++++++++++++++++++++++++++++
 // StreamCreatePt -
 type StreamCreatePt struct {
+    Od ChannelId `form:"Od" json:"Od" xml:"Od" bson:"Od" binding:"required"` // Channel id.
     Id StreamId `form:"Id" json:"Id" xml:"Id" bson:"Id" binding:"required"` // stream id.
 }
 var _ BZProtocol = (*StreamCreatePt)(nil)
@@ -46,7 +47,12 @@ func (c *StreamCreatePt) Type() Method {
 
 // Len -
 func (c *StreamCreatePt) Len() int {
-    return 4
+    return 4 + 4
+}
+
+// String -
+func (c *StreamCreatePt) String() string {
+    return fmt.Sprintf("Stream#%d", c.Id)
 }
 
 // Unmarshal -
@@ -54,7 +60,9 @@ func (c *StreamCreatePt) Unmarshal(buf []byte) error {
     if len(buf) < c.Len() {
         return ErrNoEnoughtBufferLen
     }
-    c.Id = StreamId(binary.BigEndian.Uint32(buf[0:4]))
+    i := 0
+    c.Od = ChannelId(binary.BigEndian.Uint32(buf[i:])); i += 4
+    c.Id = StreamId(binary.BigEndian.Uint32(buf[i:])); i += 4
     return nil
 }
 
@@ -63,7 +71,9 @@ func (c *StreamCreatePt) Marshal(buf []byte) ([]byte, error) {
     if len(buf) < c.Len() {
         return buf, ErrNoEnoughtBufferLen
     }
-    binary.BigEndian.PutUint32(buf[:], uint32(c.Id))
+    i := 0
+    binary.BigEndian.PutUint32(buf[i:], uint32(c.Od)); i += 4
+    binary.BigEndian.PutUint32(buf[i:], uint32(c.Id)); i += 4
     return buf, nil
 }
 
@@ -72,7 +82,8 @@ func (c *StreamCreatePt) Marshal(buf []byte) ([]byte, error) {
 // StreamAckPt -
 type StreamAckPt struct {
     Code ErrCode `form:"Code" json:"Code" xml:"Code" bson:"Code" binding:"required"` // ack Code.
-    Message string `form:"Message" json:"Message" xml:"Message" bson:"Message" binding:"required"` // ack Message.
+    Message []byte `form:"Message" json:"Message" xml:"Message" bson:"Message" binding:"required"` // ack Message.
+    Od ChannelId `form:"Od" json:"Od" xml:"Od" bson:"Od" binding:"required"` // Channel id.
     Id StreamId `form:"Id" json:"Id" xml:"Id" bson:"Id" binding:"required"` // stream id.
 }
 var _ BZProtocol = (*StreamAckPt)(nil)
@@ -85,12 +96,17 @@ func NewStreamAckPt() *StreamAckPt {
 
 // Type -
 func (c *StreamAckPt) Type() Method {
-    return Method_STREAM_CREATE
+    return Method_STREAM_ACK
 }
 
 // Len -
 func (c *StreamAckPt) Len() int {
-    return 4
+    return 4 + 4 + 4 + 4 + len(c.Message)
+}
+
+// String -
+func (c *StreamAckPt) String() string {
+    return fmt.Sprintf("Stream#%d Code.%d, Message.%s", c.Id, c.Code, c.Message)
 }
 
 // Unmarshal -
@@ -98,7 +114,13 @@ func (c *StreamAckPt) Unmarshal(buf []byte) error {
     if len(buf) < c.Len() {
         return ErrNoEnoughtBufferLen
     }
-    c.Id = StreamId(binary.BigEndian.Uint32(buf[0:4]))
+    var i uint32 = 0
+    c.Od = ChannelId(binary.BigEndian.Uint32(buf[i:])); i += 4
+    c.Id = StreamId(binary.BigEndian.Uint32(buf[i:])); i += 4
+    c.Code = ErrCode(binary.BigEndian.Uint32(buf[i:])); i += 4
+
+    lc := binary.BigEndian.Uint32(buf[i:]); i += 4
+    c.Message = buf[i:i+lc]; i += lc
     return nil
 }
 
@@ -107,7 +129,13 @@ func (c *StreamAckPt) Marshal(buf []byte) ([]byte, error) {
     if len(buf) < c.Len() {
         return buf, ErrNoEnoughtBufferLen
     }
-    binary.BigEndian.PutUint32(buf[:], uint32(c.Id))
+    i := 0
+    binary.BigEndian.PutUint32(buf[i:], uint32(c.Od)); i += 4
+    binary.BigEndian.PutUint32(buf[i:], uint32(c.Id)); i += 4
+    binary.BigEndian.PutUint32(buf[i:], uint32(c.Code)); i += 4
+
+    binary.BigEndian.PutUint32(buf[i:], uint32(len(c.Message))); i += 4
+    ByteCopy(buf, i, c.Message, 0); i += len(c.Message)
     return buf, nil
 }
 
@@ -116,6 +144,9 @@ func (c *StreamAckPt) Marshal(buf []byte) ([]byte, error) {
 /////////////////////////StreamErrorPt++++++++++++++++++++++++++++++++
 // StreamErrorPt -
 type StreamErrorPt struct {
+    Code ErrCode `form:"Code" json:"Code" xml:"Code" bson:"Code" binding:"required"` // ack Code.
+    Message []byte `form:"Message" json:"Message" xml:"Message" bson:"Message" binding:"required"` // ack Message.
+    Od ChannelId `form:"Od" json:"Od" xml:"Od" bson:"Od" binding:"required"` // Channel id.
     Id StreamId `form:"Id" json:"Id" xml:"Id" bson:"Id" binding:"required"` // stream id.
 }
 var _ BZProtocol = (*StreamErrorPt)(nil)
@@ -133,7 +164,12 @@ func (c *StreamErrorPt) Type() Method {
 
 // Len -
 func (c *StreamErrorPt) Len() int {
-    return 4
+    return 4 + 4 + 4 + 4 + len(c.Message)
+}
+
+// String -
+func (c *StreamErrorPt) String() string {
+    return fmt.Sprintf("Stream#%d Error.%d, Message.%s", c.Id, c.Code, c.Message)
 }
 
 // Unmarshal -
@@ -141,7 +177,13 @@ func (c *StreamErrorPt) Unmarshal(buf []byte) error {
     if len(buf) < c.Len() {
         return ErrNoEnoughtBufferLen
     }
-    c.Id = StreamId(binary.BigEndian.Uint32(buf[0:4]))
+    var i uint32 = 0
+    c.Od = ChannelId(binary.BigEndian.Uint32(buf[i:])); i += 4
+    c.Id = StreamId(binary.BigEndian.Uint32(buf[i:])); i += 4
+    c.Code = ErrCode(binary.BigEndian.Uint32(buf[i:])); i += 4
+
+    lc := binary.BigEndian.Uint32(buf[i:]); i += 4
+    c.Message = buf[i:i+lc]; i += lc
     return nil
 }
 
@@ -150,7 +192,13 @@ func (c *StreamErrorPt) Marshal(buf []byte) ([]byte, error) {
     if len(buf) < c.Len() {
         return buf, ErrNoEnoughtBufferLen
     }
-    binary.BigEndian.PutUint32(buf[:], uint32(c.Id))
+    i := 0
+    binary.BigEndian.PutUint32(buf[i:], uint32(c.Od)); i += 4
+    binary.BigEndian.PutUint32(buf[i:], uint32(c.Id)); i += 4
+    binary.BigEndian.PutUint32(buf[i:], uint32(c.Code)); i += 4
+
+    binary.BigEndian.PutUint32(buf[i:], uint32(len(c.Message))); i += 4
+    ByteCopy(buf, i, c.Message, 0); i += len(c.Message)
     return buf, nil
 }
 
@@ -158,6 +206,7 @@ func (c *StreamErrorPt) Marshal(buf []byte) ([]byte, error) {
 /////////////////////////StreamClosePt++++++++++++++++++++++++++++++++
 // StreamClosePt -
 type StreamClosePt struct {
+    Od ChannelId `form:"Od" json:"Od" xml:"Od" bson:"Od" binding:"required"` // Channel id.
     Id StreamId `form:"Id" json:"Id" xml:"Id" bson:"Id" binding:"required"` // stream id.
 }
 var _ BZProtocol = (*StreamClosePt)(nil)
@@ -170,12 +219,17 @@ func NewStreamClosePt() *StreamClosePt {
 
 // Type -
 func (c *StreamClosePt) Type() Method {
-    return Method_STREAM_ERROR
+    return Method_STREAM_CLOSE
 }
 
 // Len -
 func (c *StreamClosePt) Len() int {
-    return 4
+    return 4 + 4
+}
+
+// String -
+func (c *StreamClosePt) String() string {
+    return fmt.Sprintf("Stream#%d Close", c.Id)
 }
 
 // Unmarshal -
@@ -183,6 +237,7 @@ func (c *StreamClosePt) Unmarshal(buf []byte) error {
     if len(buf) < c.Len() {
         return ErrNoEnoughtBufferLen
     }
+    c.Od = ChannelId(binary.BigEndian.Uint32(buf[0:4]))
     c.Id = StreamId(binary.BigEndian.Uint32(buf[0:4]))
     return nil
 }
@@ -192,6 +247,7 @@ func (c *StreamClosePt) Marshal(buf []byte) ([]byte, error) {
     if len(buf) < c.Len() {
         return buf, ErrNoEnoughtBufferLen
     }
+    binary.BigEndian.PutUint32(buf[:], uint32(c.Od))
     binary.BigEndian.PutUint32(buf[:], uint32(c.Id))
     return buf, nil
 }
@@ -200,9 +256,10 @@ func (c *StreamClosePt) Marshal(buf []byte) ([]byte, error) {
 /////////////////////////StreamDataPt++++++++++++++++++++++++++++++++
 // StreamDataPt -
 type StreamDataPt struct {
+    Od ChannelId `form:"Od" json:"Od" xml:"Od" bson:"Od" binding:"required"` // Channel id.
     Id StreamId `form:"Id" json:"Id" xml:"Id" bson:"Id" binding:"required"` // stream id.
     Length uint32  `form:"Length" json:"Length" xml:"Length" bson:"Length" binding:"required"` // data length.
-    Binary bool `form:"Binary" json:"Binary" xml:"Binary" bson:"Binary" binding:"required"` // binary or text.
+    Binary Boolean `form:"Binary" json:"Binary" xml:"Binary" bson:"Binary" binding:"required"` // binary or text.
     Data []byte `form:"Data" json:"Data" xml:"Data" bson:"Data" binding:"required"` // data buffer.
 }
 var _ BZProtocol = (*StreamDataPt)(nil)
@@ -220,7 +277,12 @@ func (c *StreamDataPt) Type() Method {
 
 // Len -
 func (c *StreamDataPt) Len() int {
-    return 4 + 1 + 4 + len(c.Data)
+    return 4 + 4 + 1 + 4 + 4 + len(c.Data)
+}
+
+// String -
+func (c *StreamDataPt) String() string {
+    return fmt.Sprintf("Channel#%dSteam#%d Binary(%d) Length(%d)", c.Od, c.Id, c.Binary, c.Length)
 }
 
 // Unmarshal -
@@ -228,14 +290,12 @@ func (c *StreamDataPt) Unmarshal(buf []byte) error {
     if len(buf) < c.Len() {
         return ErrNoEnoughtBufferLen
     }
-    i := 0
+    var i uint32 = 0
+    c.Od = ChannelId(binary.BigEndian.Uint32(buf[i:])); i += 4
     c.Id = StreamId(binary.BigEndian.Uint32(buf[i:])); i += 4
-    c.Binary = bool(buf[i] == '1'); i += 1
     c.Length = binary.BigEndian.Uint32(buf[i:]); i += 4
-    if c.Data == nil {
-        c.Data = make([]byte, c.Length)
-    }
-    ByteCopy(c.Data, 0, buf[i:i+int(c.Length)], int(c.Length))
+    c.Binary = Boolean(buf[i]); i += 1
+    c.Data = buf[i:i+c.Length]; i += c.Length
     return nil
 }
 
@@ -245,14 +305,10 @@ func (c *StreamDataPt) Marshal(buf []byte) ([]byte, error) {
         return buf, ErrNoEnoughtBufferLen
     }
     i := 0
+    binary.BigEndian.PutUint32(buf[i:], uint32(c.Od)); i += 4
     binary.BigEndian.PutUint32(buf[i:], uint32(c.Id)); i += 4
-    if c.Binary {
-        buf[i] = '1'
-    } else {
-        buf[i] = '0'
-    }
-    i += 1
     binary.BigEndian.PutUint32(buf[i:], c.Length); i += 4
-    ByteCopy(buf, i, c.Data, 0)
+    buf[i] = byte(c.Binary); i += 1
+    ByteCopy(buf, i, c.Data, 0); i += int(c.Length)
     return buf, nil
 }

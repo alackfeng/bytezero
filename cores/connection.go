@@ -45,10 +45,26 @@ func (c *Connection) ChannId() string {
     return c.SessionId
 }
 
+// Id -
+func (c *Connection) Id() string {
+    return c.RemoteAddr().String()
+}
+
 // Set -
-func (c *Connection) Set(info *protocol.ChannelCreatePt) {
+func (c *Connection) Set(info *protocol.ChannelCreatePt) *Connection {
     c.DeviceId = string(info.DeviceId)
     c.SessionId = string(info.SessionId)
+    return c
+}
+
+// Check -
+func (c *Connection) Check() error {
+    if c.SessionId == "" {
+        return protocol.ErrNoSessionId
+    } else if c.DeviceId == "" {
+        return protocol.ErrNoDeviceId
+    }
+    return nil
 }
 
 // Equal -
@@ -65,6 +81,11 @@ func (c *Connection) Quit() {
 
 // Transit - to connection.
 func (c *Connection) Transit(buf []byte) error {
+    return c.Send(buf)
+}
+
+// Send -
+func (c *Connection) Send(buf []byte) error {
     n, err := c.Write(buf)
     if err != nil {
         return err
@@ -97,10 +118,10 @@ func (c *Connection) handleRecevier() error {
 
         out := &protocol.CommonPt{}
         if err := protocol.Unmarshal(buffer[0:len], out); err != nil {
-            logbz.Errorln("Connection handleRecevier - Unmarshal error", err.Error())
+            logbz.Errorln("Connection handleRecevier - Unmarshal error.", err.Error())
             continue
         }
-        fmt.Printf("Connection handleRecevier - buffer len %d, Unmarshal %d.\n", len, out.Len())
+        fmt.Printf(">>>>> Connection handleRecevier - recv buffer len %d, Unmarshal %d.\n", len, out.Len())
         c.bzn.HandlePt(c, out)
 
         // wlen, err := c.Write(buffer[0:len])

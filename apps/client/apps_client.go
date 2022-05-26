@@ -11,11 +11,16 @@ import (
 	"github.com/alackfeng/bytezero/cores/utils"
 )
 
+var logc = utils.Logger(utils.Fields{"animal": "apps_client"})
+
+
 const maxBufferLen int = 1024 * 1024 * 1
 const sendPeroid int = 1000 // ms.
 const appId = "appId_Bytezero_PcGo"
 const appKey = "appId_Bytezero_PcGo_miss"
 
+
+var uploadResource *AppsUploadResource
 
 // AppsClient - 测试客户端.
 type AppsClient struct {
@@ -52,7 +57,9 @@ func NewAppsClient() *AppsClient {
         sendBufferLen: maxBufferLen,
         recvBufferLen: maxBufferLen,
         recvCheck: false,
+        sessionId: "abcdefghijk",
     }
+    c.AppsChannels = *NewAppsChannels(c)
     return c
 }
 
@@ -73,7 +80,7 @@ func (app *AppsClient) DeviceId() string {
 
 // SessionId - Client interface.
 func (app *AppsClient) SessionId() string {
-    return app.deviceId + "_" + app.sessionId
+    return app.sessionId
 }
 
 // TargetAddress -
@@ -319,6 +326,18 @@ func (app *AppsClient) wait() error {
         // } else if cmd == "udp" {
         //     go app.handleUdpRecevicer()
         //     go app.handleUdpSender()
+        } else if cmd == "upload" || cmd == "u" || cmd == "U" {
+            filePath := "E:\\TestData\\视频\\IMG_2790.MOV"
+            bufferLen := 1024
+            uploadResource = NewAppsUploadResourceUpload(app, app.sessionId, filePath, bufferLen)
+            if err := uploadResource.Start(); err != nil {
+                fmt.Println("UploadResource failed.", err.Error())
+            }
+        } else if cmd == "answer" || cmd == "a" || cmd == "A" {
+            uploadResource = NewAppsUploadResourceAnswer(app, app.sessionId)
+            if err := uploadResource.Start(); err != nil {
+                fmt.Println("UploadResource failed.", err.Error())
+            }
         } else if cmd == "stop" {
             app.done <- true
         } else {

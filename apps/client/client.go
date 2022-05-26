@@ -4,14 +4,13 @@ import "github.com/alackfeng/bytezero/bytezero/protocol"
 
 // BaseHandle
 type BaseHandle interface {
-    ConnectionChannel(sessionId string) (ChannelHandle, error)
+    ConnectionChannel(sessionId string, observer ChannelObserver) (ChannelHandle, error)
     ChannelClose(sessionId string) (err error)
 }
 
 // Client -
 type Client interface {
     BaseHandle
-    ChannelObserver
     MaxRecvBufferLen() int
     AppId() string
     DeviceId() string
@@ -22,6 +21,7 @@ type Client interface {
 // ChannelSender -
 type ChannelSender interface {
     Send([]byte) error
+    Id() protocol.ChannelId
 }
 
 // ChannelObserver -
@@ -37,6 +37,7 @@ type ChannelHandle interface {
     Start(address string, sessionId string) error
     Stop() error
     Online() bool
+    Id() protocol.ChannelId
 
     // stream operator.
     StreamCreate(sid protocol.StreamId, observer StreamObserver) (StreamHandle, error)
@@ -48,12 +49,15 @@ type ChannelHandle interface {
 type StreamObserver interface {
     OnStreamSuccess(protocol.StreamId)
     OnStreamError(int, string)
+    OnStreamData([]byte, protocol.Boolean)
 }
 
 // StreamHandle -
 type StreamHandle interface {
     Create() error
     Close() error
+    RegisterObserver(StreamObserver)
+    UnRegisterObserver()
     StreamId() protocol.StreamId
     SendData([]byte) error
     SendSignal([]byte) error

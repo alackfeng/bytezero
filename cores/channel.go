@@ -1,12 +1,16 @@
 package cores
 
-import "github.com/alackfeng/bytezero/bytezero/protocol"
+import (
+	"fmt"
+
+	"github.com/alackfeng/bytezero/bytezero/protocol"
+)
 
 // Channel -
 type Channel struct {
     lc *Connection
     rt *Connection
-    id string
+    id protocol.ChannelId
 }
 
 // NewChannel -
@@ -22,12 +26,13 @@ func (c *Channel) Online() bool {
 // Create -
 func (c *Channel) Create(lc *Connection) *Channel {
     c.lc = lc
+    c.id = protocol.GenChannelId()
+    fmt.Println("Channel.Create - ", c.id)
     return c
 }
 
 // Join -
 func (c *Channel) Join(o *Connection) *Channel {
-    // if lc != nil
     if c.rt == nil {
         c.rt = o
     } else if c.rt.Equals(o) { // Update, close last connection.
@@ -39,33 +44,35 @@ func (c *Channel) Join(o *Connection) *Channel {
         c.lc.Quit()
         c.lc = o
     }
+    fmt.Println("Channel.Join - ", c.id, c.lc, c.rt)
     return c
 }
 
 // Ack -
-func (c *Channel) Ack() error {
-    channelAckPt := protocol.NewChannelAckPt()
-    mByte, err := protocol.Marshal(channelAckPt)
-    if err != nil {
-        return err
-    }
+func (c *Channel) Ack(code protocol.ErrCode, message string) error {
     if !c.Online() {
         return protocol.ErrNotBothOnline
     }
-    if n, err := c.lc.Write(mByte); err != nil {
-        if n != len(mByte) {
-            return protocol.ErrBufferNotAllWrite
-        }
+    channelAckPt := &protocol.ChannelAckPt{
+        Id: c.id,
+        Code: code,
+        Message: []byte(message),
+    }
+    mByte, err := protocol.Marshal(channelAckPt)
+    if err != nil {
+        logbz.Errorf("Channel.Ack - error.%v.", err.Error())
         return err
     }
-    if n, err := c.rt.Write(mByte); err != nil {
-        if n != len(mByte) {
-            return protocol.ErrBufferNotAllWrite
-        }
+    fmt.Printf("Channel.Ack - send ack %v, to %v, %v.\n", channelAckPt, c.lc.Id(), c.lc.Id())
+    if err := c.lc.Send(mByte); err != nil {
+        logbz.Errorf("Channel.Ack - Send To %v, error.%v.", c.lc.Id(), err.Error())
+        return err
+    }
+    if err := c.rt.Send(mByte); err != nil {
+        logbz.Errorf("Channel.Ack - Send To %v, error.%v.", c.rt.Id(), err.Error())
         return err
     }
     return nil
-
 }
 
 // Transit -

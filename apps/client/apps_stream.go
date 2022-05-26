@@ -1,6 +1,10 @@
 package client
 
-import "github.com/alackfeng/bytezero/bytezero/protocol"
+import (
+	"fmt"
+
+	"github.com/alackfeng/bytezero/bytezero/protocol"
+)
 
 // AppsStream -
 type AppsStream struct {
@@ -23,22 +27,36 @@ func NewAppsStream(sid protocol.StreamId, sender ChannelSender , observer Stream
 // Create -
 func (a *AppsStream) Create() error {
     a.state = protocol.StreamStateCreate
-    streamCreatePt := protocol.StreamCreatePt{
+    streamCreatePt := &protocol.StreamCreatePt{
+        Od: a.Sender.Id(),
         Id: a.Id,
     }
     mByte, err := protocol.Marshal(streamCreatePt)
     if err != nil {
+        logc.Errorf("AppsStream.Create - StreamCreatePt Marshal error.%v", err.Error())
         return err
     }
+    logc.Debugf("AppsStream.Create - Send to %v, buffer %v.", a.Sender, streamCreatePt)
     if a.Sender != nil {
         return a.Sender.Send(mByte)
     }
-    return nil
+    logc.Errorf("AppsStream.Create - Stream Sender is null.")
+    return fmt.Errorf("Stream Sender is null")
 }
 
 // Close -
 func (a *AppsStream) Close() error {
     return nil
+}
+
+// RegisterObserver -
+func (a *AppsStream) RegisterObserver(observer StreamObserver) {
+    a.Observer = observer
+}
+
+// UnRegisterObserver -
+func (a *AppsStream) UnRegisterObserver() {
+    a.Observer = nil
 }
 
 
@@ -50,12 +68,14 @@ func (a *AppsStream) StreamId() protocol.StreamId {
 // Ack -
 func (a *AppsStream) Ack(code protocol.ErrCode, message string) error {
     streamAckPt := &protocol.StreamAckPt{
+        Od: a.Sender.Id(),
         Id: a.Id,
         Code: protocol.ErrCode(code),
-        Message: message,
+        Message: []byte(message),
     }
     mByte, err := protocol.Marshal(streamAckPt)
     if err != nil {
+        logc.Errorf("AppsStream.Create - StreamAckPt Marshal error.%v", err.Error())
         return err
     }
     return a.Sender.Send(mByte)
@@ -68,16 +88,25 @@ func (a *AppsStream) OnAck(streamAckPt *protocol.StreamAckPt) error {
         a.Observer.OnStreamSuccess(a.Id)
     } else {
         a.state = protocol.StreamStateFailed
-        a.Observer.OnStreamError(int(streamAckPt.Code), streamAckPt.Message)
+        a.Observer.OnStreamError(int(streamAckPt.Code),  string(streamAckPt.Message))
+    }
+    return nil
+}
+
+// onData -
+func (a *AppsStream) onData(streamDataPt *protocol.StreamDataPt) error {
+    if a.Observer != nil {
+        a.Observer.OnStreamData(streamDataPt.Data, streamDataPt.Binary)
     }
     return nil
 }
 
 // SendData -
 func (a *AppsStream) SendData(m []byte) error {
-    streamDataPt := protocol.StreamDataPt{
+    streamDataPt := &protocol.StreamDataPt{
+        Od: a.Sender.Id(),
         Id: a.Id,
-        Binary: true,
+        Binary: protocol.BooleanTrue,
         Length: uint32(len(m)),
         Data: m,
     }
@@ -90,9 +119,10 @@ func (a *AppsStream) SendData(m []byte) error {
 
 // SendSignal -
 func (a *AppsStream) SendSignal(m []byte) error {
-    streamDataPt := protocol.StreamDataPt{
+    streamDataPt := &protocol.StreamDataPt{
+        Od: a.Sender.Id(),
         Id: a.Id,
-        Binary: false,
+        Binary: protocol.BooleanFalse,
         Length: uint32(len(m)),
         Data: m,
     }

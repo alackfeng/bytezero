@@ -7,36 +7,43 @@ import (
 // ChannelId -
 type ChannelId uint32
 
-// Channel Method -
+var gloablChannelId ChannelId = 0
+// Next -
+func GenChannelId() ChannelId  {
+    gloablChannelId++
+    return gloablChannelId
+}
+
+// Method - channel.
 type Method uint8
 
 const (
-    Method_NONE                Method = 0
-    Method_CHANNEL_CREATE      Method = 1
-    Method_CHANNEL_ACK         Method = 2
-    Method_CHANNEL_CLOSE       Method = 3
-    Method_STREAM_CREATE       Method = 4
-    Method_STREAM_ACK          Method = 5
-    Method_STREAM_DATA         Method = 6
-    Method_STREAM_CLOSE        Method = 7
-    Method_STREAM_REFRESH      Method = 8
-    Method_STREAM_ERROR        Method = 9
+    Method_NONE                Method = iota
+    Method_CHANNEL_CREATE
+    Method_CHANNEL_ACK
+    Method_CHANNEL_CLOSE
+    Method_STREAM_CREATE
+    Method_STREAM_ACK
+    Method_STREAM_DATA
+    Method_STREAM_CLOSE
+    Method_STREAM_REFRESH
+    Method_STREAM_ERROR
 )
-
-var Method_name = map[int32]string {
-    0: "NONE",
-    1: "CHANNEL_CREATE",
-    2: "CHANNEL_ACK",
-    3: "CHANNEL_CLOSE",
-    4: "STREAM_CREATE",
-    5: "STREAM_ACK",
-    6: "STREAM_DATA",
-    7: "STREAM_CLOSE",
-}
 
 // Method String -
 func (x Method) String() string {
-    return Method_name[int32(x)]
+    switch x {
+    case Method_CHANNEL_CREATE: return "CHANNEL_CREATE"
+    case Method_CHANNEL_ACK:    return "CHANNEL_ACK"
+    case Method_CHANNEL_CLOSE:  return "CHANNEL_CLOSE"
+    case Method_STREAM_CREATE:  return "STREAM_CREATE"
+    case Method_STREAM_ACK:     return "STREAM_ACK"
+    case Method_STREAM_DATA:    return "STREAM_DATA"
+    case Method_STREAM_CLOSE:   return "STREAM_CLOSE"
+    case Method_STREAM_REFRESH: return "STREAM_REFRESH"
+    case Method_STREAM_ERROR:   return "STREAM_ERROR"
+    }
+    return "NONE"
 }
 
 // Unmarshal -
@@ -44,6 +51,8 @@ func Unmarshal(buf []byte, out interface{}) error {
     switch out.(type) {
     case *CommonPt:
         return out.(*CommonPt).Unmarshal(buf)
+    case BZProtocol:
+        return out.(BZProtocol).Unmarshal(buf)
     default:
         return fmt.Errorf("Protocol Unmarshal %v not support ", out)
     }
@@ -51,8 +60,13 @@ func Unmarshal(buf []byte, out interface{}) error {
 
 // Marshal -
 func Marshal(m interface{}) ([]byte, error) {
-    if cc, ok := m.(BZProtocol); ok {
+    switch m.(type) {
+    case *CommonPt:
+        return m.(*CommonPt).Marshal()
+    case BZProtocol:
+        cc, _ := m.(BZProtocol)
         return NewCommPb(cc.Type()).MarshalP(cc)
     }
+    fmt.Println("Protocol.Marshal - type not found.", m)
     return nil, ErrBZProtocol
 }

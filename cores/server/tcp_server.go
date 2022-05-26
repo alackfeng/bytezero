@@ -60,12 +60,12 @@ func (t *TcpServer) Listen() error {
 
 // handleEcho -
 func (t *TcpServer) handleEcho(conn *net.TCPConn) error {
-    if t.readBufferLen > 1024 {
-        conn.SetReadBuffer(t.readBufferLen)
-    }
-    if t.writeBufferLen > 1024 {
-        conn.SetWriteBuffer(t.writeBufferLen)
-    }
+    // if t.readBufferLen > 1024 {
+    //     conn.SetReadBuffer(t.readBufferLen)
+    // }
+    // if t.writeBufferLen > 1024 {
+    //     conn.SetWriteBuffer(t.writeBufferLen)
+    // }
 
     defer conn.Close()
     count := 0

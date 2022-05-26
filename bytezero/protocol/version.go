@@ -1,11 +1,11 @@
 package protocol
 
 // VersionNumber -
-type VersionNumber uint16
+type VersionNumber uint8
 
 const
 (
-    VersionFirst VersionNumber = 1
-    VersionMax VersionNumber = 0xFFFF
+    Version20220526 VersionNumber = 1
+    VersionMax VersionNumber = 0xFF
 )
 
