@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/alackfeng/bytezero/bytezero/protocol"
 )
@@ -116,7 +115,7 @@ func (a *AppsUploadResource) uploadFile() (err error) {
         }
         offset += n
         a.f5.Write(buf[0:n])
-        time.Sleep(time.Millisecond * 50)
+        // time.Sleep(time.Millisecond * 5)
     }
     a.info.FileMd5 = fmt.Sprintf("%X", a.f5.Sum(nil))
     fmt.Printf("AppsUploadResource.uploadFile - end.. upload file<%s> size<%d> md5<%s>, at Channel#%dStream#%d over.\n", a.filePath, a.info.FileSize, a.info.FileMd5, a.channelHandle.Id(), a.streamHandle.StreamId())

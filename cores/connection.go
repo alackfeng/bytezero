@@ -6,12 +6,14 @@ import (
 
 	bz "github.com/alackfeng/bytezero/bytezero"
 	"github.com/alackfeng/bytezero/bytezero/protocol"
+	"github.com/alackfeng/bytezero/cores/utils"
 )
 
 const defaultMaxBufferLen = 1538
 
 // Connection -
 type Connection struct {
+    utils.BufferRead
     *net.TCPConn
     bzn bz.BZNet
     maxBufferLen int
@@ -29,7 +31,8 @@ func NewConnection(bzn bz.BZNet, c *net.TCPConn) *Connection {
     return &Connection{
         TCPConn: c,
         bzn: bzn,
-        maxBufferLen: defaultMaxBufferLen,
+        maxBufferLen: defaultMaxBufferLen*10,
+        BufferRead: *utils.NewBufferRead(defaultMaxBufferLen*10),
     }
 }
 
@@ -78,6 +81,10 @@ func (c *Connection) Quit() {
     c.quit = true
 }
 
+func (c Connection) String() string {
+    return fmt.Sprintf("Connection#[SessionId<%s>, DeviceId<%s>]", c.SessionId, c.DeviceId)
+}
+
 
 // Transit - to connection.
 func (c *Connection) Transit(buf []byte) error {
@@ -104,34 +111,67 @@ func (c *Connection) handleSender() {
 // handleRecevier -
 func (c *Connection) handleRecevier() error {
     defer c.Close()
-    buffer := make([]byte, c.maxBufferLen)
+    // buffer := make([]byte, c.maxBufferLen)
+    // currOffset := 0
+    // readOffset := 0
+    // remainLen := 0
+    // nextRead := true
     count := 0
     for {
-        len, err := c.Read(buffer)
-        if err != nil {
+        // if nextRead {
+        //     len, err := c.Read(buffer[readOffset:])
+        //     if err != nil {
+        //         logbz.Errorf("Connection handleRecevier - read error.", err.Error())
+        //         return err
+        //     }
+
+        //     readOffset += len
+        //     remainLen = readOffset - currOffset
+        //     if readOffset > c.maxBufferLen - c.maxBufferLen / 10 {
+        //         buffer = buffer[currOffset:readOffset]
+        //         currOffset = 0; readOffset = remainLen
+        //     }
+        // }
+        if _, err := c.BufferRead.Read(func(b []byte) (int, error) {
+            return c.TCPConn.Read(b)
+        }); err != nil {
             logbz.Errorf("Connection handleRecevier - read error.", err.Error())
             return err
         }
-        if len == 0 {
+
+        // len, err := c.TCPConn.Read(buffer)
+        // if err != nil {
+        //     logbz.Errorf("Connection handleRecevier - read error.", err.Error())
+        //     return err
+        // }
+
+        if c.BufferRead.Empty() {
             logbz.Debugln("Connection handleRecevier - wait next.")
             continue
         }
 
         out := &protocol.CommonPt{}
-        if err := protocol.Unmarshal(buffer[0:len], out); err != nil {
-            logbz.Errorln("Connection handleRecevier - Unmarshal error.", err.Error())
+        // if err := protocol.Unmarshal(buffer[0:len], out); err != nil {
+        if err := protocol.Unmarshal(c.BufferRead.Get(), out); err != nil {
+                // if err := protocol.Unmarshal(buffer[currOffset:readOffset], out); err != nil {
+            if err == protocol.ErrNoFixedMe {
+                logbz.Errorln("Connection handleRecevier - Unmarshal error.", err.Error())
+                return err
+            }
+            logbz.Errorln("Connection handleRecevier - Unmarshal ------- error.", err.Error())
+            c.BufferRead.Step()
             continue
         }
+        c.BufferRead.Next(out.Len())
 
-        fmt.Printf(">>>>> Connection handleRecevier - recv buffer len %d, unmarshal %d, count %d.\n", len, out.Len(), count)
+        // currOffset += out.Len()
+        // remainLen = readOffset - currOffset
+
+        fmt.Printf(">>>>> Connection handleRecevier - recv buffer len %d, unmarshal %d, count %d.\n", c.BufferRead.Length(), out.Len(), count)
+        // fmt.Printf(">>>>> Connection handleRecevier - recv buffer len %d, unmarshal %d, count %d.\n", len, out.Len(), count)
         count++
         c.bzn.HandlePt(c, out)
 
-        // wlen, err := c.Write(buffer[0:len])
-        // if err != nil {
-        //     return err
-        // }
-        // fmt.Printf("Connection handleRecevier - read %d, write %d.\n", len, wlen)
 
         if c.quit == true {
             break

@@ -16,6 +16,7 @@ const waitTimeoutForAck = 30000 // ms.
 
 // AppsChannel -
 type AppsChannel struct {
+    utils.BufferRead
     app Client
     *net.TCPConn
     address string
@@ -41,6 +42,7 @@ var _ ChannelSender = (*AppsChannel)(nil)
 func NewAppsChannel(app Client) *AppsChannel {
     return &AppsChannel{
         app: app,
+        BufferRead: *utils.NewBufferRead(app.MaxRecvBufferLen()),
         ack: make(chan protocol.ErrCode),
         state: protocol.ChannelStateNone,
         m: make(map[protocol.StreamId]*AppsStream),
@@ -165,34 +167,52 @@ func (a *AppsChannel) handleRecevier() {
         return
     }
 
-    recvBufferLen := a.app.MaxRecvBufferLen()
-    buffer := make([]byte, recvBufferLen)
-    currTime := time.Now()
+    // recvBufferLen := a.app.MaxRecvBufferLen()
+    // buffer := make([]byte, recvBufferLen)
+    // currTime := time.Now()
     for {
-        n, err := a.Read(buffer)
-        if err != nil {
-            fmt.Printf("AppsChannel::handleRecevier error.%v.\n", err)
+        // n, err := a.Read(buffer)
+        // if err != nil {
+        //     fmt.Printf("AppsChannel::handleRecevier error.%v.\n", err)
+        //     break
+        // }
+        // if a.recvStat.Bytes == 0 {
+        //     a.recvStat.Begin()
+        //     fmt.Printf("AppsChannel::handleRecevier - begin. recv begin %v.\n", a.recvStat.Info())
+        // }
+        // a.recvStat.Inc(int64(n))
+        // if n != recvBufferLen {
+        //     fmt.Printf("AppsChannel::handleRecevier - recv buffer len %d not equal recvBufferLen, real %d.\n", recvBufferLen, n)
+        // }
+        // if time.Now().Sub(currTime).Milliseconds() > 1000 {
+        //     currTime = time.Now()
+        //     fmt.Printf("AppsChannel::handleRecevier - recv count %d, bps %s. send bps %s\n", a.recvStat.Count, utils.ByteSizeFormat(a.recvStat.Bps1s()), utils.ByteSizeFormat(a.sendStat.Bps1s()))
+        // }
+
+        if _, err := a.BufferRead.Read(func(b []byte) (int, error) {
+            return a.TCPConn.Read(b)
+        }); err != nil {
+            logc.Errorf("AppsChannel::handleRecevier - read error.", err.Error())
             break
         }
-        if a.recvStat.Bytes == 0 {
-            a.recvStat.Begin()
-            fmt.Printf("AppsChannel::handleRecevier - begin. recv begin %v.\n", a.recvStat.Info())
-        }
-        a.recvStat.Inc(int64(n))
-        if n != recvBufferLen {
-            fmt.Printf("AppsChannel::handleRecevier - recv buffer len %d not equal recvBufferLen, real %d.\n", recvBufferLen, n)
-        }
-        if time.Now().Sub(currTime).Milliseconds() > 1000 {
-            currTime = time.Now()
-            fmt.Printf("AppsChannel::handleRecevier - recv count %d, bps %s. send bps %s\n", a.recvStat.Count, utils.ByteSizeFormat(a.recvStat.Bps1s()), utils.ByteSizeFormat(a.sendStat.Bps1s()))
+        if a.BufferRead.Empty() {
+            logc.Debugln("Connection handleRecevier - wait next.")
+            continue
         }
 
         // 处理接收到消息.
         commonPt := &protocol.CommonPt{}
-        if err := protocol.Unmarshal(buffer[0:n], commonPt); err != nil {
+        if err := protocol.Unmarshal(a.BufferRead.Get(), commonPt); err != nil {
             fmt.Printf("AppsChannel::handleRecevicer - Unmarshal Buffer error.%v.\n", err.Error())
+            if err == protocol.ErrNoFixedMe {
+                logc.Errorln("AppsChannel::handleRecevier - Unmarshal error.", err.Error())
+                break
+            }
+            a.BufferRead.Step()
             continue
         }
+        a.BufferRead.Next(commonPt.Len())
+
         if err := a.handlePt(commonPt); err != nil {
             fmt.Printf("AppsChannel::handleRecevicer - handlePt error.%v.\n", err.Error())
             continue
