@@ -105,6 +105,7 @@ func (c *Connection) handleSender() {
 func (c *Connection) handleRecevier() error {
     defer c.Close()
     buffer := make([]byte, c.maxBufferLen)
+    count := 0
     for {
         len, err := c.Read(buffer)
         if err != nil {
@@ -121,7 +122,9 @@ func (c *Connection) handleRecevier() error {
             logbz.Errorln("Connection handleRecevier - Unmarshal error.", err.Error())
             continue
         }
-        fmt.Printf(">>>>> Connection handleRecevier - recv buffer len %d, Unmarshal %d.\n", len, out.Len())
+
+        fmt.Printf(">>>>> Connection handleRecevier - recv buffer len %d, unmarshal %d, count %d.\n", len, out.Len(), count)
+        count++
         c.bzn.HandlePt(c, out)
 
         // wlen, err := c.Write(buffer[0:len])

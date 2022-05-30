@@ -40,7 +40,8 @@ type ChannelHandle interface {
     Id() protocol.ChannelId
 
     // stream operator.
-    StreamCreate(sid protocol.StreamId, observer StreamObserver) (StreamHandle, error)
+    StreamCreate(sid protocol.StreamId, observer StreamObserver, extra []byte) (StreamHandle, error)
+    StreamClose(sid protocol.StreamId, extra []byte) error
 }
 
 
@@ -50,6 +51,7 @@ type StreamObserver interface {
     OnStreamSuccess(protocol.StreamId)
     OnStreamError(int, string)
     OnStreamData([]byte, protocol.Boolean)
+    OnStreamClosing([]byte)
 }
 
 // StreamHandle -
@@ -59,6 +61,7 @@ type StreamHandle interface {
     RegisterObserver(StreamObserver)
     UnRegisterObserver()
     StreamId() protocol.StreamId
+    ExtraInfo() []byte
     SendData([]byte) error
     SendSignal([]byte) error
 }

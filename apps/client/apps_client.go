@@ -327,14 +327,16 @@ func (app *AppsClient) wait() error {
         //     go app.handleUdpRecevicer()
         //     go app.handleUdpSender()
         } else if cmd == "upload" || cmd == "u" || cmd == "U" {
-            filePath := "E:\\TestData\\视频\\IMG_2790.MOV"
+            // filePath := "E:\\TestData\\视频\\IMG_2790.MOV"
+            filePath := "E:\\TestData\\视频\\nini.3gp"
             bufferLen := 1024
             uploadResource = NewAppsUploadResourceUpload(app, app.sessionId, filePath, bufferLen)
             if err := uploadResource.Start(); err != nil {
                 fmt.Println("UploadResource failed.", err.Error())
             }
         } else if cmd == "answer" || cmd == "a" || cmd == "A" {
-            uploadResource = NewAppsUploadResourceAnswer(app, app.sessionId)
+            savePath := "C:\\Users\\Administrator\\Desktop\\"
+            uploadResource = NewAppsUploadResourceAnswer(app, app.sessionId, savePath)
             if err := uploadResource.Start(); err != nil {
                 fmt.Println("UploadResource failed.", err.Error())
             }

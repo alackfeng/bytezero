@@ -25,5 +25,7 @@ const (
     ErrCode_ConnectionError     ErrCode = 100000
     ErrCode_ConnectionClosed    ErrCode = 100001
     ErrCode_ack                 ErrCode = 100100
+    ErrCode_streamCreateAck     ErrCode = 100101
+    ErrCode_streamCloseAck      ErrCode = 100102
 
 )

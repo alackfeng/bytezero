@@ -217,7 +217,7 @@ func (a *AppsChannel) handlePt(commonPt *protocol.CommonPt) error {
     case protocol.Method_STREAM_DATA:
         return a.onStreamData(commonPt)
     case protocol.Method_STREAM_CLOSE:
-        fallthrough
+        return a.onStreamClose(commonPt)
     case protocol.Method_CHANNEL_CREATE:
         // 客户端不会接收到此消息，由Bytezero处理.
         fallthrough
@@ -269,7 +269,7 @@ func (a *AppsChannel) onChannelAck(commonPt *protocol.CommonPt) error {
 }
 
 // StreamCreate -
-func (a *AppsChannel) StreamCreate(sid protocol.StreamId, observer StreamObserver) (StreamHandle, error) {
+func (a *AppsChannel) StreamCreate(sid protocol.StreamId, observer StreamObserver, extra []byte) (StreamHandle, error) {
     a.l.Lock()
 
     streamHandle, ok := a.m[sid]
@@ -278,7 +278,7 @@ func (a *AppsChannel) StreamCreate(sid protocol.StreamId, observer StreamObserve
         return streamHandle, nil
     }
 
-    streamHandle = NewAppsStream(sid, a, observer)
+    streamHandle = NewAppsStream(sid, a, observer, extra)
     if err := streamHandle.Create(); err != nil {
         a.l.Unlock()
         return nil, err
@@ -293,6 +293,29 @@ func (a *AppsChannel) StreamCreate(sid protocol.StreamId, observer StreamObserve
     return streamHandle, nil
 }
 
+// StreamClose -
+func (a *AppsChannel) StreamClose(sid protocol.StreamId, extra []byte) error {
+    a.l.Lock()
+
+    streamHandle, ok := a.m[sid]
+    if !ok {
+        a.l.Unlock()
+        return nil
+    }
+    streamHandle.extra = extra
+    if err := streamHandle.Close(); err != nil {
+        a.l.Unlock()
+        return err
+    }
+    a.w[sid] = make(chan protocol.ErrCode)
+    a.l.Unlock()
+    // wait.
+    if err := a.wait(a.w[sid], waitTimeoutForAck, "stream", sid); err != nil {
+        return err
+    }
+    return nil
+}
+
 // onStreamCreate -
 func (a *AppsChannel) onStreamCreate(commonPt *protocol.CommonPt) error {
     // 请求.
@@ -304,11 +327,11 @@ func (a *AppsChannel) onStreamCreate(commonPt *protocol.CommonPt) error {
     // 通知.
     a.l.Lock()
     defer a.l.Unlock()
-    streamHandle := NewAppsStream(streamCreatePt.Id, a, nil)
+    streamHandle := NewAppsStream(streamCreatePt.Id, a, nil, streamCreatePt.Extra)
     var code protocol.ErrCode = protocol.ErrCode_success
     var err error = fmt.Errorf("ok")
     code, err = a.Observer.onStream(streamHandle);
-    if code == protocol.ErrCode_success {
+    if code == protocol.ErrCode_success || code == protocol.ErrCode_streamCreateAck {
         a.m[streamCreatePt.Id] = streamHandle
     }
     // 响应.
@@ -355,3 +378,21 @@ func (a *AppsChannel) onStreamData(commonPt *protocol.CommonPt) error {
     fmt.Printf("AppsChannel.onStreamData - %v not exist.\n", streamDataPt)
     return nil
 }
+
+// onStreamClose -
+func (a *AppsChannel) onStreamClose(commonPt *protocol.CommonPt) error {
+    streamClosePt := &protocol.StreamClosePt{}
+    if err := commonPt.UnmarshalP(streamClosePt); err != nil {
+        return err
+    }
+    fmt.Printf("AppsChannel.onStreamClose - StreamClosePt %v.\n", streamClosePt)
+
+    a.l.Lock()
+    defer a.l.Unlock()
+    if stream, ok := a.m[streamClosePt.Id]; ok {
+        return stream.onClose(streamClosePt)
+    }
+    fmt.Printf("AppsChannel.onStreamClose - %v not exist.\n", streamClosePt)
+    return nil
+}
+
