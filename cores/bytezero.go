@@ -88,6 +88,19 @@ func (bzn *BytezeroNet) StartTcp() {
     bzn.ts = tcpServer
 }
 
+// HandleConnClose -
+func (bzn *BytezeroNet) HandleConnClose(connection interface{}) {
+    bzn.l.Lock()
+    if c, ok := connection.(*Connection); ok {
+        if channel, ok := bzn.channels[c.ChannId()]; ok {
+            channel.LeaveAll()
+            delete(bzn.channels, c.ChannId())
+        }
+        delete(bzn.connections, c.Id())
+    }
+    bzn.l.Unlock()
+}
+
 // HandleConn -
 func (bzn *BytezeroNet) HandleConn(tcpConn *net.TCPConn) error {
     bzn.l.Lock()

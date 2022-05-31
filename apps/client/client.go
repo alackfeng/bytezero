@@ -6,6 +6,7 @@ import "github.com/alackfeng/bytezero/bytezero/protocol"
 type BaseHandle interface {
     ConnectionChannel(sessionId string, observer ChannelObserver) (ChannelHandle, error)
     ChannelClose(sessionId string) (err error)
+    ChannelCloseByHandle(ChannelHandle) (err error)
 }
 
 // Client -
@@ -28,6 +29,7 @@ type ChannelSender interface {
 type ChannelObserver interface {
     OnSuccess(protocol.ChannelId)
     OnError(int, string)
+    OnState(protocol.ChannelState)
     onStream(StreamHandle) (protocol.ErrCode, error)
 }
 

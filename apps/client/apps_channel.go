@@ -132,9 +132,17 @@ func (a *AppsChannel) dial() error {
     if err != nil {
         return err
     }
-    a.state = protocol.ChannelStateConnecting
+    a.stateChanged(protocol.ChannelStateConnecting)
     a.TCPConn = tcpConn
     return nil
+}
+
+// stateChanged -
+func (a *AppsChannel) stateChanged(state protocol.ChannelState) {
+    a.state = state
+    if a.Observer != nil {
+        a.Observer.OnState(a.state)
+    }
 }
 
 // wait -
@@ -223,8 +231,10 @@ func (a *AppsChannel) handleRecevier() {
     }
     a.recvStat.End()
     fmt.Printf("AppsChannel::handleRecevicer - end... %v.\n", a.recvStat.InfoAll())
-    a.state = protocol.ChannelStateClosed
+    a.stateChanged(protocol.ChannelStateClosed)
     a.ack <- protocol.ErrCode_ConnectionClosed
+
+    a.app.ChannelClose(a.sessionId)
 }
 
 // handlePt -
@@ -252,7 +262,6 @@ func (a *AppsChannel) handlePt(commonPt *protocol.CommonPt) error {
 
 // channelCreate -
 func (a *AppsChannel) channelCreate(sessionId string) (err error) {
-    a.state = protocol.ChannelStateCreate
     a.sessionId = sessionId
     channelCreatePt := &protocol.ChannelCreatePt {
         AppId: []byte(a.app.AppId()),
@@ -263,12 +272,16 @@ func (a *AppsChannel) channelCreate(sessionId string) (err error) {
     if err != nil {
         return err
     }
+    a.stateChanged(protocol.ChannelStateCreate)
     fmt.Println("AppsChannel channelCreate - ", channelCreatePt, ", len ", len(mByte))
     return a.Send(mByte)
 }
 
 // channelClose -
 func (a *AppsChannel) channelClose() (err error) {
+    if a.state == protocol.ChannelStateClosed {
+        return nil
+    }
     return a.TCPConn.Close()
 }
 
@@ -281,10 +294,10 @@ func (a *AppsChannel) onChannelAck(commonPt *protocol.CommonPt) error {
     if channelAckPt.Code == protocol.ErrCode_success {
         a.cid = channelAckPt.Id
         a.Observer.OnSuccess(a.cid)
-        a.state = protocol.ChannelStateOpen
+        a.stateChanged(protocol.ChannelStateOpen)
     } else {
         a.Observer.OnError(int(channelAckPt.Code), string(channelAckPt.Message))
-        a.state = protocol.ChannelStateFailed
+        a.stateChanged(protocol.ChannelStateFailed)
     }
     a.ack <- channelAckPt.Code
     return nil

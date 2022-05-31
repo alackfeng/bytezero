@@ -56,3 +56,16 @@ func (a *AppsChannels) ChannelClose(sessionId string) (err error) {
     a.l.Unlock()
     return nil
 }
+
+// ChannelCloseByHandle - BaseHandle interface.
+func (a *AppsChannels) ChannelCloseByHandle(handle ChannelHandle) (err error) {
+    a.l.Lock()
+    if h, ok := handle.(*AppsChannel); ok {
+        if channel, ok := a.m[h.sessionId]; ok {
+            err = channel.Stop()
+            delete(a.m, h.sessionId)
+        }
+    }
+    a.l.Unlock()
+    return nil
+}

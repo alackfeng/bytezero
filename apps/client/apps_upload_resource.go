@@ -121,6 +121,7 @@ func (a *AppsUploadResource) uploadFile() (err error) {
     a.info.FileMd5 = fmt.Sprintf("%X", a.f5.Sum(nil))
     fmt.Printf("AppsUploadResource.uploadFile - end.. upload file<%s> size<%d> md5<%s>, at Channel#%dStream#%d over.\n", a.filePath, a.info.FileSize, a.info.FileMd5, a.channelHandle.Id(), a.streamHandle.StreamId())
     a.channelHandle.StreamClose(a.streamId, a.info.ToMd5())
+    a.app.ChannelCloseByHandle(a.channelHandle)
     return nil
 }
 
@@ -182,6 +183,12 @@ func (a *AppsUploadResource) OnSuccess(cid protocol.ChannelId) {
 func (a *AppsUploadResource) OnError(code int, message string) {
     fmt.Printf("AppsUploadResource.OnError - code %d, %s.\n", code, message)
 }
+
+// OnState - ChannelObserver interface.
+func (a *AppsUploadResource) OnState(state protocol.ChannelState) {
+    fmt.Printf("AppsUploadResource.OnState - state %v.\n", state)
+}
+
 
 // onStream - ChannelObserver interface.
 func (a *AppsUploadResource) onStream(s StreamHandle) (protocol.ErrCode, error) {

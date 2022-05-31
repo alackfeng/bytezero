@@ -48,6 +48,16 @@ func (c *Channel) Join(o *Connection) *Channel {
     return c
 }
 
+// LeaveAll -
+func (c *Channel) LeaveAll() {
+    if c.rt != nil {
+        c.rt.Quit()
+    }
+    if c.lc != nil {
+        c.lc.Quit()
+    }
+}
+
 // Ack -
 func (c *Channel) Ack(code protocol.ErrCode, message string) error {
     if !c.Online() {

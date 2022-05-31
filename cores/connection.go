@@ -38,7 +38,7 @@ func NewConnection(bzn bz.BZNet, c *net.TCPConn) *Connection {
 
 // Main -
 func (c *Connection) Main()*Connection {
-    go c.handleSender()
+    // go c.handleSender()
     go c.handleRecevier()
     return c
 }
@@ -110,7 +110,7 @@ func (c *Connection) handleSender() {
 
 // handleRecevier -
 func (c *Connection) handleRecevier() error {
-    defer c.Close()
+    // defer c.Close()
     // buffer := make([]byte, c.maxBufferLen)
     // currOffset := 0
     // readOffset := 0
@@ -177,6 +177,7 @@ func (c *Connection) handleRecevier() error {
             break
         }
     }
+    c.bzn.HandleConnClose(c)
     return nil
 }
 
