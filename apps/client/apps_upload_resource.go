@@ -121,7 +121,8 @@ func (a *AppsUploadResource) uploadFile() (err error) {
     a.info.FileMd5 = fmt.Sprintf("%X", a.f5.Sum(nil))
     fmt.Printf("AppsUploadResource.uploadFile - end.. upload file<%s> size<%d> md5<%s>, at Channel#%dStream#%d over.\n", a.filePath, a.info.FileSize, a.info.FileMd5, a.channelHandle.Id(), a.streamHandle.StreamId())
     a.channelHandle.StreamClose(a.streamId, a.info.ToMd5())
-    a.app.ChannelCloseByHandle(a.channelHandle)
+    // a.app.ChannelCloseByHandle(a.channelHandle)
+    go a.uploadFile()
     return nil
 }
 

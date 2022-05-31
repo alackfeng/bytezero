@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"strconv"
+	"strings"
+	"sync"
 	"time"
 
 	bzc "github.com/alackfeng/bytezero/cores/client"
@@ -19,8 +22,6 @@ const sendPeroid int = 1000 // ms.
 const appId = "appId_Bytezero_PcGo"
 const appKey = "appId_Bytezero_PcGo_miss"
 
-
-var uploadResource *AppsUploadResource
 
 // AppsClient - 测试客户端.
 type AppsClient struct {
@@ -39,7 +40,9 @@ type AppsClient struct {
     recvCheck bool // false, close connection.
 
     deviceId string
-    sessionId string
+
+    l sync.Mutex
+    m map[string]*AppsUploadResource
 
 
     // stats.
@@ -57,7 +60,7 @@ func NewAppsClient() *AppsClient {
         sendBufferLen: maxBufferLen,
         recvBufferLen: maxBufferLen,
         recvCheck: false,
-        sessionId: "abcdefghijk",
+        m: make(map[string]*AppsUploadResource),
     }
     c.AppsChannels = *NewAppsChannels(c)
     return c
@@ -76,11 +79,6 @@ func (app *AppsClient) AppId() string {
 // DeviceId - Client interface.
 func (app *AppsClient) DeviceId() string {
     return app.deviceId
-}
-
-// SessionId - Client interface.
-func (app *AppsClient) SessionId() string {
-    return app.sessionId
 }
 
 // TargetAddress -
@@ -130,13 +128,6 @@ func (app *AppsClient) SetDeviceId(deviceId string) *AppsClient {
     app.deviceId = deviceId
     return app
 }
-
-// SetSessionId -
-func (app *AppsClient) SetSessionId(sessionId string) *AppsClient {
-    app.sessionId = sessionId
-    return app
-}
-
 
 
 
@@ -315,6 +306,12 @@ func (app *AppsClient) wait() error {
             break
         }
         cmd := input.Text()
+        options := strings.Split(cmd, " ")
+        if len(options) < 1 {
+            continue
+        }
+        cmd = options[0]
+        fmt.Printf("cmd: %s, -------------- options: %v.\n", cmd, options)
         if cmd == "" {
         } else if cmd == "quit" || cmd == "q" || cmd == "Q" {
             break
@@ -328,18 +325,40 @@ func (app *AppsClient) wait() error {
         //     go app.handleUdpSender()
         } else if cmd == "upload" || cmd == "u" || cmd == "U" {
             // filePath := "E:\\TestData\\视频\\IMG_2790.MOV"
-            filePath := "E:\\TestData\\视频\\nini.3gp"
+            sessionId := "1"
+            if len(options) > 1 {
+                sessionId = options[1]
+            }
             bufferLen := 1024 * 64
-            uploadResource = NewAppsUploadResourceUpload(app, app.sessionId, filePath, bufferLen)
+            if len(options) > 2 {
+                i, _ := strconv.ParseInt(options[2], 10, 64)
+                bufferLen = int(i)
+            }
+
+            filePath := "E:\\TestData\\视频\\nini.3gp"
+            app.l.Lock()
+            uploadResource := NewAppsUploadResourceUpload(app, sessionId, filePath, bufferLen)
             if err := uploadResource.Start(); err != nil {
                 fmt.Println("UploadResource failed.", err.Error())
             }
+            app.m[sessionId] = uploadResource
+            app.l.Unlock()
         } else if cmd == "answer" || cmd == "a" || cmd == "A" {
+            sessionId := "1"
+            if len(options) > 1 {
+                sessionId = options[1]
+            }
             savePath := "C:\\Users\\Administrator\\Desktop\\"
-            uploadResource = NewAppsUploadResourceAnswer(app, app.sessionId, savePath)
+            if len(options) > 2 {
+                savePath = options[2]
+            }
+            app.l.Lock()
+            uploadResource := NewAppsUploadResourceAnswer(app, sessionId, savePath)
             if err := uploadResource.Start(); err != nil {
                 fmt.Println("UploadResource failed.", err.Error())
             }
+            app.m[sessionId] = uploadResource
+            app.l.Unlock()
         } else if cmd == "stop" {
             app.done <- true
         } else {

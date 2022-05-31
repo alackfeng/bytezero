@@ -15,7 +15,6 @@ type Client interface {
     MaxRecvBufferLen() int
     AppId() string
     DeviceId() string
-    SessionId() string
     TargetAddress() string
 }
 
