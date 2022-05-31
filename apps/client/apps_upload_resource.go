@@ -77,6 +77,7 @@ func (a *AppsUploadResource) uploadFile() (err error) {
 
     f, err := os.Open(a.filePath)
     if err != nil {
+        fmt.Printf("AppsUploadResource.uploadFile - upload file<%s>, error.%s\n", a.filePath, err.Error())
         return err
     }
     defer f.Close()
@@ -110,7 +111,9 @@ func (a *AppsUploadResource) uploadFile() (err error) {
             }
             return err
         }
-        fmt.Printf("AppsUploadResource.uploadFile - send to Channel#%dStream#%d, buffer %d, offset %d - %d.\n", a.channelHandle.Id(), a.streamHandle.StreamId(), n, offset, a.info.FileSize)
+        if (offset / a.bufferLen) % 1000 == 0 {
+            fmt.Printf("AppsUploadResource.uploadFile - send to Channel#%dStream#%d, buffer %d, offset %d - %d.\n", a.channelHandle.Id(), a.streamHandle.StreamId(), n, offset, a.info.FileSize)
+        }
         if err := a.streamHandle.SendData(buf[0:n]); err != nil {
             return err
         }
@@ -121,8 +124,8 @@ func (a *AppsUploadResource) uploadFile() (err error) {
     a.info.FileMd5 = fmt.Sprintf("%X", a.f5.Sum(nil))
     fmt.Printf("AppsUploadResource.uploadFile - end.. upload file<%s> size<%d> md5<%s>, at Channel#%dStream#%d over.\n", a.filePath, a.info.FileSize, a.info.FileMd5, a.channelHandle.Id(), a.streamHandle.StreamId())
     a.channelHandle.StreamClose(a.streamId, a.info.ToMd5())
-    // a.app.ChannelCloseByHandle(a.channelHandle)
-    go a.uploadFile()
+    a.app.ChannelCloseByHandle(a.channelHandle)
+    // go a.uploadFile()
     return nil
 }
 
@@ -215,7 +218,7 @@ func (a *AppsUploadResource) OnStreamError(code int, message string) {
 
 // OnStreamData -
 func (a *AppsUploadResource) OnStreamData(buffer []byte, b protocol.Boolean) {
-    fmt.Printf("AppsUploadResource.OnStreamData - buffer %d, binary %v.\n", len(buffer), b)
+    // fmt.Printf("AppsUploadResource.OnStreamData - buffer %d, binary %v.\n", len(buffer), b)
     if b == protocol.BooleanTrue && a.mode == ModeAnswer {
         if a.f == nil {
             if err := a.answerFile(); err != nil {

@@ -49,8 +49,8 @@ func (a *AppsChannels) ConnectionChannel(sessionId string, observer ChannelObser
 // ChannelClose - BaseHandle interface.
 func (a *AppsChannels) ChannelClose(sessionId string) (err error) {
     a.l.Lock()
-    if channel, ok := a.m[sessionId]; ok {
-        err = channel.Stop()
+    if _, ok := a.m[sessionId]; ok {
+        // err = channel.Stop()
         delete(a.m, sessionId)
     }
     a.l.Unlock()

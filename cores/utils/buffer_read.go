@@ -27,7 +27,7 @@ func (b *BufferRead) Get() []byte {
         fmt.Println("BufferRead::Get - nil.")
         return []byte{}
     }
-    fmt.Println("BufferRead::Get - ", b.currOffset, b.readOffset, len(b.buffer[b.currOffset:b.readOffset]))
+    // fmt.Println("BufferRead::Get - ", b.currOffset, b.readOffset, len(b.buffer[b.currOffset:b.readOffset]))
     return b.buffer[b.currOffset:b.readOffset]
 }
 
@@ -44,7 +44,7 @@ func (b *BufferRead) Length() int {
 // Read -
 func (b *BufferRead) Read(readFunc func([]byte) (int, error)) (int, error) {
     if !b.needRead {
-       fmt.Printf("BufferRead::read - currOffset %d, readOffset %d, remainLen %d, cap %d, engouht----------------.\n", b.currOffset, b.readOffset, b.remainLen, len(b.buffer))
+    //    fmt.Printf("BufferRead::read - currOffset %d, readOffset %d, remainLen %d, cap %d, engouht----------------.\n", b.currOffset, b.readOffset, b.remainLen, len(b.buffer))
        return b.remainLen, nil
     }
     if readFunc != nil {
@@ -60,7 +60,7 @@ func (b *BufferRead) Read(readFunc func([]byte) (int, error)) (int, error) {
             b.currOffset = 0; b.readOffset = b.remainLen
         }
         b.needRead = true
-        fmt.Printf("BufferRead::read - currOffset %d, readOffset %d, remainLen %d, curr read len %d, cap %d.\n", b.currOffset, b.readOffset, b.remainLen, l, len(b.buffer))
+        // fmt.Printf("BufferRead::read - currOffset %d, readOffset %d, remainLen %d, curr read len %d, cap %d.\n", b.currOffset, b.readOffset, b.remainLen, l, len(b.buffer))
         return b.remainLen, nil
     }
     return 0, fmt.Errorf("BufferRead need read func")

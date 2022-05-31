@@ -110,6 +110,7 @@ func (c *Connection) handleSender() {
 
 // handleRecevier -
 func (c *Connection) handleRecevier() error {
+    defer c.bzn.HandleConnClose(c)
     // defer c.Close()
     // buffer := make([]byte, c.maxBufferLen)
     // currOffset := 0
@@ -177,7 +178,6 @@ func (c *Connection) handleRecevier() error {
             break
         }
     }
-    c.bzn.HandleConnClose(c)
     return nil
 }
 

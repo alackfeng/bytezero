@@ -334,8 +334,11 @@ func (app *AppsClient) wait() error {
                 i, _ := strconv.ParseInt(options[2], 10, 64)
                 bufferLen = int(i)
             }
-
-            filePath := "E:\\TestData\\视频\\nini.3gp"
+            // filePath := "E:\\TestData\\视频\\nini.3gp"
+            filePath := "E:\\TestData\\视频\\IMG_2790.MOV"
+            if len(options) > 3 {
+                filePath = options[3]
+            }
             app.l.Lock()
             uploadResource := NewAppsUploadResourceUpload(app, sessionId, filePath, bufferLen)
             if err := uploadResource.Start(); err != nil {

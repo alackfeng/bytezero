@@ -78,7 +78,7 @@ func (c *HeadPt) Pack(buf []byte) error {
     binary.BigEndian.PutUint16(buf[i:], c.Fixed); i += 2
     buf[i] = byte(c.Ver); i += 1
     buf[i] = byte(c.Type); i += 1
-    fmt.Printf("Pack: Fixed.0x%X, Ver.%v, Type.%v.\n", c.Fixed, c.Ver, c.Type)
+    // fmt.Printf("Pack: Fixed.0x%X, Ver.%v, Type.%v.\n", c.Fixed, c.Ver, c.Type)
     return nil
 }
 
@@ -94,7 +94,7 @@ func (c *HeadPt) UnPack(buf []byte) error {
     }
     c.Ver = VersionNumber(buf[i]); i += 1
     c.Type = Method(buf[i]); i += 1
-    fmt.Printf("UnPack: Fixed.0x%X, Ver.%v, Type.%v.\n", c.Fixed, c.Ver, c.Type)
+    // fmt.Printf("UnPack: Fixed.0x%X, Ver.%v, Type.%v.\n", c.Fixed, c.Ver, c.Type)
     return nil
 }
 

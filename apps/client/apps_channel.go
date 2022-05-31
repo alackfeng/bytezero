@@ -213,7 +213,7 @@ func (a *AppsChannel) handleRecevier() {
         // 处理接收到消息.
         commonPt := &protocol.CommonPt{}
         if err := protocol.Unmarshal(a.BufferRead.Get(), commonPt); err != nil {
-            fmt.Printf("AppsChannel::handleRecevicer - Unmarshal Buffer error.%v.\n", err.Error())
+            // fmt.Printf("AppsChannel::handleRecevicer - Unmarshal Buffer error.%v.\n", err.Error())
             if err == protocol.ErrNoFixedMe {
                 logc.Errorln("AppsChannel::handleRecevier - Unmarshal error.", err.Error())
                 break
@@ -423,7 +423,7 @@ func (a *AppsChannel) onStreamData(commonPt *protocol.CommonPt) error {
     if err := commonPt.UnmarshalP(streamDataPt); err != nil {
         return err
     }
-    fmt.Printf("AppsChannel.onStreamData - StreamDataPt %v.\n", streamDataPt)
+    // fmt.Printf("AppsChannel.onStreamData - StreamDataPt %v.\n", streamDataPt)
 
     a.l.Lock()
     defer a.l.Unlock()
@@ -431,7 +431,7 @@ func (a *AppsChannel) onStreamData(commonPt *protocol.CommonPt) error {
         stream.onData(streamDataPt)
         return nil
     }
-    fmt.Printf("AppsChannel.onStreamData - %v not exist.\n", streamDataPt)
+    // fmt.Printf("AppsChannel.onStreamData - %v not exist.\n", streamDataPt)
     return nil
 }
 
