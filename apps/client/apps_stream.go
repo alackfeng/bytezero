@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/alackfeng/bytezero/bytezero/protocol"
 )
@@ -113,9 +114,11 @@ func (a *AppsStream) Ack(code protocol.ErrCode, message string) error {
 
 // OnAck -
 func (a *AppsStream) OnAck(streamAckPt *protocol.StreamAckPt) error {
-    if streamAckPt.Code == protocol.ErrCode_success {
+    if streamAckPt.Code == protocol.ErrCode_streamCreateAck {
         a.state = protocol.StreamStateOpen
         a.Observer.OnStreamSuccess(a.Id)
+    } else if streamAckPt.Code == protocol.ErrCode_streamCloseAck {
+        a.state = protocol.StreamStateClosed
     } else {
         a.state = protocol.StreamStateFailed
         a.Observer.OnStreamError(int(streamAckPt.Code),  string(streamAckPt.Message))
@@ -152,34 +155,62 @@ func (a *AppsStream) onClose(streamClosePt *protocol.StreamClosePt) error {
 
 // SendData -
 func (a *AppsStream) SendData(m []byte) error {
-    streamDataPt := &protocol.StreamDataPt{
-        Od: a.Sender.Id(),
-        Id: a.Id,
-        Binary: protocol.BooleanTrue,
-        Length: uint32(len(m)),
-        Data: m,
+    l := len(m)
+    for i:=0; i<l; i += 1024 {
+        n := i + 1024
+        if n > l {
+            n = l
+        }
+        data := m[i:n]
+        streamDataPt := &protocol.StreamDataPt{
+            Od: a.Sender.Id(),
+            Id: a.Id,
+            Binary: protocol.BooleanTrue,
+            Timestamp: uint64(time.Now().UnixNano()),
+            Total: uint32(l),
+            Offset: uint32(i),
+            Length: uint32(len(data)),
+            Data: data,
+        }
+        mByte, err := protocol.Marshal(streamDataPt);
+        if err != nil {
+            return err
+        }
+        if err := a.Sender.Send(mByte); err != nil {
+            return err
+        }
     }
-    mByte, err := protocol.Marshal(streamDataPt);
-    if err != nil {
-        return err
-    }
-    return a.Sender.Send(mByte)
+    return nil
 }
 
 // SendSignal -
 func (a *AppsStream) SendSignal(m []byte) error {
-    streamDataPt := &protocol.StreamDataPt{
-        Od: a.Sender.Id(),
-        Id: a.Id,
-        Binary: protocol.BooleanFalse,
-        Length: uint32(len(m)),
-        Data: m,
+    l := len(m)
+    for i:=0; i<l; i += 1024 {
+        n := i + 1024
+        if n > l {
+            n = l
+        }
+        data := m[i:n]
+        streamDataPt := &protocol.StreamDataPt{
+            Od: a.Sender.Id(),
+            Id: a.Id,
+            Binary: protocol.BooleanFalse,
+            Timestamp: uint64(time.Now().UnixNano()),
+            Total: uint32(l),
+            Offset: uint32(i),
+            Length: uint32(len(data)),
+            Data: data,
+        }
+        mByte, err := protocol.Marshal(streamDataPt);
+        if err != nil {
+            return err
+        }
+        if err := a.Sender.Send(mByte); err != nil {
+            return err
+        }
     }
-    mByte, err := protocol.Marshal(streamDataPt);
-    if err != nil {
-        return err
-    }
-    return a.Sender.Send(mByte)
+    return nil
 }
 
 

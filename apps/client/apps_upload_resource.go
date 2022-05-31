@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/alackfeng/bytezero/bytezero/protocol"
 )
@@ -88,7 +89,7 @@ func (a *AppsUploadResource) uploadFile() (err error) {
     }
 
     // 创建Stream通道.
-    a.streamHandle, err = a.channelHandle.StreamCreate(a.streamId, a, a.info.To())
+    a.streamHandle, err = a.channelHandle.StreamCreate(a, a.info.To())
     if err != nil {
         fmt.Printf("AppsUploadResource.uploadFile - streamHandle is null, error.%v.\n", err.Error())
         return err
@@ -115,7 +116,7 @@ func (a *AppsUploadResource) uploadFile() (err error) {
         }
         offset += n
         a.f5.Write(buf[0:n])
-        // time.Sleep(time.Millisecond * 5)
+        time.Sleep(time.Millisecond * 5)
     }
     a.info.FileMd5 = fmt.Sprintf("%X", a.f5.Sum(nil))
     fmt.Printf("AppsUploadResource.uploadFile - end.. upload file<%s> size<%d> md5<%s>, at Channel#%dStream#%d over.\n", a.filePath, a.info.FileSize, a.info.FileMd5, a.channelHandle.Id(), a.streamHandle.StreamId())
@@ -125,7 +126,7 @@ func (a *AppsUploadResource) uploadFile() (err error) {
 
 // SavePath -
 func (a *AppsUploadResource) SavePath() string {
-    return filepath.Join(a.filePath, a.info.FileName)
+    return filepath.Join(a.filePath, fmt.Sprintf("%d_%s", a.streamHandle.StreamId(), a.info.FileName))
 }
 
 // answerFile -
@@ -196,6 +197,7 @@ func (a *AppsUploadResource) onStream(s StreamHandle) (protocol.ErrCode, error) 
 // OnStreamSuccess -
 func (a *AppsUploadResource) OnStreamSuccess(sid protocol.StreamId) {
     fmt.Println("AppsUploadResource.OnStreamSuccess - stream id ", sid)
+    a.streamId = sid
 }
 
 // OnStreamError -

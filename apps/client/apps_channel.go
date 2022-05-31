@@ -25,6 +25,8 @@ type AppsChannel struct {
     ack chan protocol.ErrCode
     state protocol.ChannelState
 
+    nextSid protocol.StreamId
+
     Observer ChannelObserver
 
     l sync.Mutex
@@ -289,9 +291,10 @@ func (a *AppsChannel) onChannelAck(commonPt *protocol.CommonPt) error {
 }
 
 // StreamCreate -
-func (a *AppsChannel) StreamCreate(sid protocol.StreamId, observer StreamObserver, extra []byte) (StreamHandle, error) {
+func (a *AppsChannel) StreamCreate(observer StreamObserver, extra []byte) (StreamHandle, error) {
     a.l.Lock()
 
+    sid := a.streamNextId()
     streamHandle, ok := a.m[sid]
     if ok {
         a.l.Unlock()
@@ -333,6 +336,22 @@ func (a *AppsChannel) StreamClose(sid protocol.StreamId, extra []byte) error {
     if err := a.wait(a.w[sid], waitTimeoutForAck, "stream", sid); err != nil {
         return err
     }
+    a.streamRemove(sid)
+    return nil
+}
+
+// streamNextId -
+func (a *AppsChannel) streamNextId() protocol.StreamId {
+    a.nextSid++
+    return a.nextSid
+}
+
+// streamRemove -
+func (a *AppsChannel) streamRemove(sid protocol.StreamId) error {
+    a.l.Lock()
+    delete(a.m, sid)
+    delete(a.w, sid)
+    a.l.Unlock()
     return nil
 }
 
@@ -348,11 +367,15 @@ func (a *AppsChannel) onStreamCreate(commonPt *protocol.CommonPt) error {
     a.l.Lock()
     defer a.l.Unlock()
     streamHandle := NewAppsStream(streamCreatePt.Id, a, nil, streamCreatePt.Extra)
-    var code protocol.ErrCode = protocol.ErrCode_success
+    var code protocol.ErrCode = protocol.ErrCode_streamCreateAck
     var err error = fmt.Errorf("ok")
     code, err = a.Observer.onStream(streamHandle);
     if code == protocol.ErrCode_success || code == protocol.ErrCode_streamCreateAck {
         a.m[streamCreatePt.Id] = streamHandle
+        // update stream id for
+        if a.nextSid < streamCreatePt.Id {
+            a.nextSid = streamCreatePt.Id
+        }
     }
     // 响应.
     fmt.Printf("AppsChannel.onStreamCreate - create %d, code %d, message %s \n", streamHandle.Id, code, err.Error())
@@ -410,7 +433,10 @@ func (a *AppsChannel) onStreamClose(commonPt *protocol.CommonPt) error {
     a.l.Lock()
     defer a.l.Unlock()
     if stream, ok := a.m[streamClosePt.Id]; ok {
-        return stream.onClose(streamClosePt)
+        err := stream.onClose(streamClosePt)
+
+        a.streamRemove(streamClosePt.Id)
+        return err
     }
     fmt.Printf("AppsChannel.onStreamClose - %v not exist.\n", streamClosePt)
     return nil

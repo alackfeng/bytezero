@@ -329,7 +329,7 @@ func (app *AppsClient) wait() error {
         } else if cmd == "upload" || cmd == "u" || cmd == "U" {
             // filePath := "E:\\TestData\\视频\\IMG_2790.MOV"
             filePath := "E:\\TestData\\视频\\nini.3gp"
-            bufferLen := 1024
+            bufferLen := 1024 * 64
             uploadResource = NewAppsUploadResourceUpload(app, app.sessionId, filePath, bufferLen)
             if err := uploadResource.Start(); err != nil {
                 fmt.Println("UploadResource failed.", err.Error())

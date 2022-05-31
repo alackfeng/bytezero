@@ -201,6 +201,7 @@ func (c *StreamAckPt) Marshal(buf []byte) ([]byte, error) {
     return buf, nil
 }
 
+
 /////////////////////////StreamClosePt++++++++++++++++++++++++++++++++
 // StreamClosePt -
 type StreamClosePt struct {
@@ -274,8 +275,11 @@ func (c *StreamClosePt) Marshal(buf []byte) ([]byte, error) {
 type StreamDataPt struct {
     Od ChannelId `form:"Od" json:"Od" xml:"Od" bson:"Od" binding:"required"` // Channel id.
     Id StreamId `form:"Id" json:"Id" xml:"Id" bson:"Id" binding:"required"` // stream id.
-    Length uint32  `form:"Length" json:"Length" xml:"Length" bson:"Length" binding:"required"` // data length.
     Binary Boolean `form:"Binary" json:"Binary" xml:"Binary" bson:"Binary" binding:"required"` // binary or text.
+    Timestamp uint64  `form:"Timestamp" json:"Timestamp" xml:"Timestamp" bson:"Timestamp" binding:"required"` // Timestamp.
+    Total uint32  `form:"Total" json:"Total" xml:"Total" bson:"Total" binding:"required"` // data total.
+    Offset uint32  `form:"Offset" json:"Offset" xml:"Offset" bson:"Offset" binding:"required"` // data offset.
+    Length uint32  `form:"Length" json:"Length" xml:"Length" bson:"Length" binding:"required"` // data length.
     Data []byte `form:"Data" json:"Data" xml:"Data" bson:"Data" binding:"required"` // data buffer.
 }
 var _ BZProtocol = (*StreamDataPt)(nil)
@@ -293,12 +297,12 @@ func (c *StreamDataPt) Type() Method {
 
 // Len -
 func (c *StreamDataPt) Len() int {
-    return 4 + 4 + 1 + 4 + int(c.Length)
+    return 4 + 4 + 1 + 8 + 4 + 4 + 4 + int(c.Length)
 }
 
 // String -
 func (c *StreamDataPt) String() string {
-    return fmt.Sprintf("Channel#%dSteam#%d Binary(%d) Length(%d)", c.Od, c.Id, c.Binary, c.Length)
+    return fmt.Sprintf("Channel#%dSteam#%d Binary(%d) Total(%d) Offset(%d) Length(%d)", c.Od, c.Id, c.Binary, c.Total, c.Offset, c.Length)
 }
 
 // Unmarshal -
@@ -309,8 +313,11 @@ func (c *StreamDataPt) Unmarshal(buf []byte) error {
     var i uint32 = 0
     c.Od = ChannelId(binary.BigEndian.Uint32(buf[i:])); i += 4
     c.Id = StreamId(binary.BigEndian.Uint32(buf[i:])); i += 4
-    c.Length = binary.BigEndian.Uint32(buf[i:]); i += 4
     c.Binary = Boolean(buf[i]); i += 1
+    c.Timestamp = binary.BigEndian.Uint64(buf[i:]); i += 4
+    c.Total = binary.BigEndian.Uint32(buf[i:]); i += 4
+    c.Offset = binary.BigEndian.Uint32(buf[i:]); i += 4
+    c.Length = binary.BigEndian.Uint32(buf[i:]); i += 4
     c.Data = buf[i:i+c.Length]; // i += c.Length
     return nil
 }
@@ -323,8 +330,11 @@ func (c *StreamDataPt) Marshal(buf []byte) ([]byte, error) {
     i := 0
     binary.BigEndian.PutUint32(buf[i:], uint32(c.Od)); i += 4
     binary.BigEndian.PutUint32(buf[i:], uint32(c.Id)); i += 4
-    binary.BigEndian.PutUint32(buf[i:], c.Length); i += 4
     buf[i] = byte(c.Binary); i += 1
+    binary.BigEndian.PutUint64(buf[i:], c.Timestamp); i += 4
+    binary.BigEndian.PutUint32(buf[i:], c.Total); i += 4
+    binary.BigEndian.PutUint32(buf[i:], c.Offset); i += 4
+    binary.BigEndian.PutUint32(buf[i:], c.Length); i += 4
     ByteCopy(buf, i, c.Data, 0); // i += int(c.Length)
     return buf, nil
 }
