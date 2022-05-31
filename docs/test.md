@@ -22,3 +22,9 @@ U bytezero-session-id-6 65536 E:\\TestData\\视频\\IMG_2790.MOV
 go run .\main.go client -t 192.168.90.116:7788 -d device1
 
 A bytezero-session-id-6 C:\\Users\\Administrator\\Desktop\\
+
+
+go run .\main.go client -t 61.164.248.149:7788 -d device0
+go run .\main.go client -t 61.164.248.149:7788 -d device1
+
+

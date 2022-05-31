@@ -159,7 +159,7 @@ func (c *Connection) handleRecevier() error {
                 logbz.Errorln("Connection handleRecevier - Unmarshal error.", err.Error())
                 return err
             }
-            logbz.Errorln("Connection handleRecevier - Unmarshal ------- error.", err.Error())
+            // logbz.Errorln("Connection handleRecevier - Unmarshal ------- error.", err.Error())
             c.BufferRead.Step()
             continue
         }
@@ -168,7 +168,7 @@ func (c *Connection) handleRecevier() error {
         // currOffset += out.Len()
         // remainLen = readOffset - currOffset
 
-        fmt.Printf(">>>>> Connection handleRecevier - recv buffer len %d, unmarshal %d, count %d.\n", c.BufferRead.Length(), out.Len(), count)
+        // fmt.Printf(">>>>> Connection handleRecevier - recv buffer len %d, unmarshal %d, count %d.\n", c.BufferRead.Length(), out.Len(), count)
         // fmt.Printf(">>>>> Connection handleRecevier - recv buffer len %d, unmarshal %d, count %d.\n", len, out.Len(), count)
         count++
         c.bzn.HandlePt(c, out)

@@ -311,7 +311,6 @@ func (app *AppsClient) wait() error {
             continue
         }
         cmd = options[0]
-        fmt.Printf("cmd: %s, -------------- options: %v.\n", cmd, options)
         if cmd == "" {
         } else if cmd == "quit" || cmd == "q" || cmd == "Q" {
             break
@@ -339,13 +338,17 @@ func (app *AppsClient) wait() error {
             if len(options) > 3 {
                 filePath = options[3]
             }
-            app.l.Lock()
-            uploadResource := NewAppsUploadResourceUpload(app, sessionId, filePath, bufferLen)
-            if err := uploadResource.Start(); err != nil {
-                fmt.Println("UploadResource failed.", err.Error())
+            for i:= 0; i<1; i++ {
+                sessionId =  fmt.Sprintf("%s_%d", sessionId, i)
+                app.l.Lock()
+                uploadResource := NewAppsUploadResourceUpload(app, sessionId, filePath, bufferLen)
+                if err := uploadResource.Start(); err != nil {
+                    fmt.Println("UploadResource failed.", err.Error())
+                }
+                app.m[sessionId] = uploadResource
+                app.l.Unlock()
             }
-            app.m[sessionId] = uploadResource
-            app.l.Unlock()
+
         } else if cmd == "answer" || cmd == "a" || cmd == "A" {
             sessionId := "1"
             if len(options) > 1 {
@@ -355,13 +358,16 @@ func (app *AppsClient) wait() error {
             if len(options) > 2 {
                 savePath = options[2]
             }
-            app.l.Lock()
-            uploadResource := NewAppsUploadResourceAnswer(app, sessionId, savePath)
-            if err := uploadResource.Start(); err != nil {
-                fmt.Println("UploadResource failed.", err.Error())
+            for i:= 0; i<1; i++ {
+                sessionId =  fmt.Sprintf("%s_%d", sessionId, i)
+                app.l.Lock()
+                uploadResource := NewAppsUploadResourceAnswer(app, sessionId, savePath)
+                if err := uploadResource.Start(); err != nil {
+                    fmt.Println("UploadResource failed.", err.Error())
+                }
+                app.m[sessionId] = uploadResource
+                app.l.Unlock()
             }
-            app.m[sessionId] = uploadResource
-            app.l.Unlock()
         } else if cmd == "stop" {
             app.done <- true
         } else {
