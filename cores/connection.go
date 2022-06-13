@@ -171,8 +171,9 @@ func (c *Connection) handleRecevier() error {
         // fmt.Printf(">>>>> Connection handleRecevier - recv buffer len %d, unmarshal %d, count %d.\n", c.BufferRead.Length(), out.Len(), count)
         // fmt.Printf(">>>>> Connection handleRecevier - recv buffer len %d, unmarshal %d, count %d.\n", len, out.Len(), count)
         count++
-        c.bzn.HandlePt(c, out)
-
+        if err := c.bzn.HandlePt(c, out); err != nil {
+            return err
+        }
 
         if c.quit == true {
             break

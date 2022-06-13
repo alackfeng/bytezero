@@ -370,6 +370,11 @@ func (app *AppsClient) wait() error {
             }
         } else if cmd == "stop" {
             app.done <- true
+        } else if cmd == "sign" {
+            cred := utils.Credential{Name: "test", ExpireS: 1655103012}
+            sign := cred.Sign("secret")
+            match := "rR5H7VQ+bEMxzf5B5cW+kNuWDJw="
+            fmt.Println("sign: ", sign, match, " match ", (match == sign))
         } else {
             fmt.Printf("cmd => (%v) not impliment.\r\n", cmd)
         }

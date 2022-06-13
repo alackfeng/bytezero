@@ -64,6 +64,11 @@ func (bzn *BytezeroNet) SetRWBufferLen(n int) *BytezeroNet {
     return bzn
 }
 
+//
+func (bzn *BytezeroNet) appKey() string {
+    return "secret"
+}
+
 // Main -
 func (bzn *BytezeroNet) Main() {
     logbz.Debugln("BytezeroNet Main...")
@@ -121,11 +126,15 @@ func (bzn *BytezeroNet) HandlePt(conn bz.BZNetReceiver, commonPt *protocol.Commo
             return fmt.Errorf("ChannelCreatePb Unmarshal error.%v", err.Error())
         }
         fmt.Println("BytezeroNet.HandlePt - ", channelCreatePb)
+        if err := utils.CredentialVerify(string(channelCreatePb.Sign), bzn.appKey()); err != nil {
+            logbz.Errorf("BytezeroNet.HandlePt - connection sign error.%s", err.Error())
+            return err
+        }
         if c, ok := conn.(*Connection); ok {
             bzn.l.Lock()
             // Update DevcieId etc.
             if err := c.Set(channelCreatePb).Check(); err != nil {
-                logbz.Errorf("BytezeroNet.HandlePt - connection check error.", err.Error())
+                logbz.Errorf("BytezeroNet.HandlePt - connection check error.%s", err.Error())
                 break
             }
             if channel, ok := bzn.channels[c.ChannId()]; ok {
