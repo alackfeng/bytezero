@@ -19,8 +19,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
 
+	"github.com/alackfeng/bytezero/cores"
 	"github.com/alackfeng/bytezero/cores/utils"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
@@ -78,6 +80,7 @@ func initConfig() {
 		// Search config in home directory with name ".bytezero" (without extension).
 		viper.AddConfigPath(home)
 		viper.SetConfigName(".bytezero")
+        viper.SetConfigType("yaml")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match
@@ -85,5 +88,16 @@ func initConfig() {
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+        cores.ConfigureParse()
 	}
+    viper.WatchConfig()
+    viper.OnConfigChange(func(e fsnotify.Event) {
+		fmt.Println("Update config file:", viper.ConfigFileUsed(), ", Event.", e.Op)
+		if e.Op == fsnotify.Write {
+			if err := viper.ReadInConfig(); err == nil {
+				fmt.Println("Update config file:", viper.ConfigFileUsed())
+			}
+			cores.ConfigureParse()
+		}
+	})
 }

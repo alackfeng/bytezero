@@ -1,0 +1,14 @@
+app:
+  name: "bytezero-go"
+  version: "v1.0.0"
+  server:
+    ip: 192.168.90.162
+    port: 7788
+  web:
+    host: 192.168.90.162:7790
+    heart: 3000
+  maxBufferLen: 10485760
+  rwBufferLen: 10485760
+  appid: bytezero-appid
+  appkey: secret
+

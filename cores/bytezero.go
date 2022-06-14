@@ -10,6 +10,7 @@ import (
 	"github.com/alackfeng/bytezero/bytezero/protocol"
 	"github.com/alackfeng/bytezero/cores/server"
 	"github.com/alackfeng/bytezero/cores/utils"
+	"github.com/alackfeng/bytezero/cores/web"
 )
 
 var logbz = utils.Logger(utils.Fields{"animal": "main"})
@@ -17,12 +18,14 @@ var logbz = utils.Logger(utils.Fields{"animal": "main"})
 // BytezeroNet - BytezeroNet
 type BytezeroNet struct {
     done chan bool
+    ctx    context.Context
+
+    // server.
     ts* server.TcpServer
-    tsAddr string
     us* server.UdpServer
-    usAddr string
-    maxBufferLen int
-    rwBufferLen int
+
+    // web api.
+    gw *web.GinWeb
 
     l sync.Mutex
     connections map[string]*Connection
@@ -35,45 +38,28 @@ var _ bz.BZNet = (*BytezeroNet)(nil)
 func NewBytezeroNet(ctx context.Context, done chan bool) *BytezeroNet {
     bzn := &BytezeroNet{
         done: done,
-        tsAddr: ":7788",
-        usAddr: ":7789",
-        maxBufferLen: 1024*1024*10,
-        rwBufferLen: 1024,
+        ctx: ctx,
         connections: make(map[string]*Connection),
         channels: make(map[string]*Channel),
     }
     return bzn
 }
 
-// SetMaxBufferLen -
-func (bzn *BytezeroNet) SetPort(port int) *BytezeroNet {
-    bzn.tsAddr = ":" + utils.IntToString(port)
-    bzn.usAddr = ":" + utils.IntToString(port+1)
-    return bzn
+// AppID -
+func (bzn *BytezeroNet) AppID() string {
+    return ConfigGlobal().App.Appid
 }
 
-// SetMaxBufferLen -
-func (bzn *BytezeroNet) SetMaxBufferLen(n int) *BytezeroNet {
-    bzn.maxBufferLen = n
-    return bzn
-}
-
-// SetRWBufferLen -
-func (bzn *BytezeroNet) SetRWBufferLen(n int) *BytezeroNet {
-    bzn.rwBufferLen = n
-    return bzn
-}
-
-//
-func (bzn *BytezeroNet) appKey() string {
-    return "secret"
+// AppKey -
+func (bzn *BytezeroNet) AppKey() string {
+    return ConfigGlobal().App.Appkey
 }
 
 // Main -
 func (bzn *BytezeroNet) Main() {
     logbz.Debugln("BytezeroNet Main...")
     go bzn.StartTcp()
-    // go bzn.StartUdp()
+    go bzn.StartWeb()
 }
 
 // Quit -
@@ -82,9 +68,21 @@ func (bzn *BytezeroNet) Quit() bool {
     return true
 }
 
+// StartWeb -
+func (bzn *BytezeroNet) StartWeb() {
+    config := ConfigGlobal()
+    if config.App.Web.Host == "" {
+        return
+    }
+    if bzn.gw == nil {
+        bzn.gw = web.NewGinWeb(config.App.Web.Host, config.App.Web.Heart, bzn)
+    }
+    bzn.gw.Start()
+}
 // StartTcp -
 func (bzn *BytezeroNet) StartTcp() {
-    tcpServer := server.NewTcpServer(bzn, bzn.tsAddr, bzn.maxBufferLen, bzn.rwBufferLen)
+    config := ConfigGlobal()
+    tcpServer := server.NewTcpServer(bzn, config.App.Server.Address(), config.App.MaxBufferLen, config.App.RWBufferLen)
     err := tcpServer.Listen()
     if err != nil {
         logbz.Errorln("BytezeroNet.StartTcp.Listen error.%v.", err.Error())
@@ -126,7 +124,7 @@ func (bzn *BytezeroNet) HandlePt(conn bz.BZNetReceiver, commonPt *protocol.Commo
             return fmt.Errorf("ChannelCreatePb Unmarshal error.%v", err.Error())
         }
         fmt.Println("BytezeroNet.HandlePt - ", channelCreatePb)
-        if err := utils.CredentialVerify(string(channelCreatePb.Sign), bzn.appKey()); err != nil {
+        if err := utils.CredentialVerify(string(channelCreatePb.Sign), bzn.AppKey()); err != nil {
             logbz.Errorf("BytezeroNet.HandlePt - connection sign error.%s", err.Error())
             return err
         }
@@ -176,7 +174,8 @@ func (bzn *BytezeroNet) HandlePt(conn bz.BZNetReceiver, commonPt *protocol.Commo
 
 // StartUdp -
 func (bzn *BytezeroNet) StartUdp() {
-    udpServer := server.NewUdpServer(bzn.usAddr, bzn.maxBufferLen, bzn.rwBufferLen)
+    config := ConfigGlobal()
+    udpServer := server.NewUdpServer(config.App.Server.Address(), config.App.MaxBufferLen, config.App.RWBufferLen)
     err := udpServer.Listen()
     if err != nil {
         logbz.Errorln("BytezeroNet.StartUdp.Listen error.%v.", err.Error())

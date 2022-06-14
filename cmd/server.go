@@ -42,6 +42,9 @@ to quickly create a Cobra application.`,
         maxBufferLen, _ := cmd.Flags().GetInt("max-buffer-len")
         rwBufferLen, _ := cmd.Flags().GetInt("rw-buffer-len")
         port, _ := cmd.Flags().GetInt("port")
+        host, _ := cmd.Flags().GetString("host")
+        appid, _ := cmd.Flags().GetString("appid")
+        appkey, _ := cmd.Flags().GetString("appkey")
 
         done := make(chan bool)
 		sigs := make(chan os.Signal, 1)
@@ -53,7 +56,8 @@ to quickly create a Cobra application.`,
 			close(done)
 		}()
         bzn := bze.NewBytezeroNet(ctx, done)
-        bzn.SetPort(port).SetMaxBufferLen(maxBufferLen).SetRWBufferLen(rwBufferLen).Main()
+        bze.ConfigSetServer(maxBufferLen, rwBufferLen, port, host, appid, appkey)
+        bzn.Main()
 
         logcmd.Errorln("main listen...")
 		bQuit := false
@@ -89,5 +93,8 @@ func init() {
 	serverCmd.Flags().IntP("max-buffer-len", "m", 1024*1024*10, "Max Buffer Length")
 	serverCmd.Flags().IntP("rw-buffer-len", "b", 1024*1024*1, "Read and Write Buffer Length")
 	serverCmd.Flags().IntP("port", "p", 7788, "tcp or udp server listen port")
+	serverCmd.Flags().StringP("host", "s", "192.168.90.162:7790", "web rest api host url")
+    serverCmd.Flags().StringP("appid", "i", "bytezero-appid", "bytezero appid")
+	serverCmd.Flags().StringP("appkey", "k", "secret", "appkey secret")
 
 }

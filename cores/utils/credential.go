@@ -6,6 +6,8 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+
+	"github.com/hashicorp/go-uuid"
 )
 
 // Credential -
@@ -15,9 +17,10 @@ type Credential struct {
 }
 
 // NewCredential -
-func NewCredential(name string, expiredMs int64) *Credential {
+func NewCredential(expiredMs int64) *Credential {
+    name, _ := uuid.GenerateRandomBytes(12)
     return &Credential{
-        Name: name,
+        Name: fmt.Sprintf("%x", name),
         ExpireS: expiredMs / 1000,
     }
 }

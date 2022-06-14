@@ -16,6 +16,10 @@ type BZNet interface {
     HandleConn(*net.TCPConn) error
     HandleConnClose(connection interface{})
     HandlePt(BZNetReceiver, *protocol.CommonPt) error
+
+    // credential.
+    AppID() string
+    AppKey() string
 }
 
 
