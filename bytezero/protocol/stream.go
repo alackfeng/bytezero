@@ -145,6 +145,7 @@ func (c *StreamCreatePt) Marshal(buf []byte) ([]byte, error) {
 type StreamAckPt struct {
     Code ErrCode `form:"Code" json:"Code" xml:"Code" bson:"Code" binding:"required"` // ack Code.
     Message []byte `form:"Message" json:"Message" xml:"Message" bson:"Message" binding:"required"` // ack Message.
+    Extra []byte `form:"Extra" json:"Extra" xml:"Extra" bson:"Extra" binding:"required"` // ack Message.
     Od ChannelId `form:"Od" json:"Od" xml:"Od" bson:"Od" binding:"required"` // Channel id.
     Id StreamId `form:"Id" json:"Id" xml:"Id" bson:"Id" binding:"required"` // stream id.
 }
@@ -163,7 +164,7 @@ func (c *StreamAckPt) Type() Method {
 
 // Len -
 func (c *StreamAckPt) Len() int {
-    return 4 + 4 + 4 + 4 + len(c.Message)
+    return 4 + 4 + 4 + 4 + len(c.Message) + 4 + len(c.Extra)
 }
 
 // String -
@@ -183,6 +184,8 @@ func (c *StreamAckPt) Unmarshal(buf []byte) error {
 
     lc := binary.BigEndian.Uint32(buf[i:]); i += 4
     c.Message = buf[i:i+lc]; i += lc
+    ld := binary.BigEndian.Uint32(buf[i:]); i += 4
+    c.Extra = buf[i:i+ld]; i += lc
     return nil
 }
 
@@ -198,6 +201,8 @@ func (c *StreamAckPt) Marshal(buf []byte) ([]byte, error) {
 
     binary.BigEndian.PutUint32(buf[i:], uint32(len(c.Message))); i += 4
     ByteCopy(buf, i, c.Message, 0); i += len(c.Message)
+    binary.BigEndian.PutUint32(buf[i:], uint32(len(c.Extra))); i += 4
+    ByteCopy(buf, i, c.Extra, 0); i += len(c.Extra)
     return buf, nil
 }
 
