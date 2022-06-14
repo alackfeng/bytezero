@@ -53,7 +53,7 @@ func (c *ChannelCreatePt) Type() Method {
 
 // Len -
 func (c *ChannelCreatePt) Len() int {
-    return 4 + len(c.AppId) + 4 + len(c.DeviceId) + 4 + len(c.SessionId)
+    return 4 + len(c.AppId) + 4 + len(c.DeviceId) + 4 + len(c.SessionId) + 4 + len(c.Sign)
 }
 
 // String -
@@ -72,6 +72,9 @@ func (c *ChannelCreatePt) Unmarshal(buf []byte) error {
 
     lc := binary.BigEndian.Uint32(buf[i:]); i += 4
     c.SessionId = buf[i:i+lc]; i += lc
+    
+    ld := binary.BigEndian.Uint32(buf[i:]); i += 4
+    c.Sign = buf[i:i+ld]; i += ld
     return nil
 }
 
@@ -86,6 +89,8 @@ func (c *ChannelCreatePt) Marshal(buf []byte) ([]byte, error) {
 
     binary.BigEndian.PutUint32(buf[i:], uint32(len(c.SessionId))); i += 4
     ByteCopy(buf, i, c.SessionId, 0); i += len(c.SessionId)
+    binary.BigEndian.PutUint32(buf[i:], uint32(len(c.Sign))); i += 4
+    ByteCopy(buf, i, c.Sign, 0); i += len(c.Sign)
     return buf, nil
 }
 
