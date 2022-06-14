@@ -55,6 +55,10 @@ func (bzn *BytezeroNet) AppKey() string {
     return ConfigGlobal().App.Appkey
 }
 
+// CredentialExpiredMs -
+func (bzn *BytezeroNet) CredentialExpiredMs() int64 {
+    return ConfigGlobal().App.Credential.ExpiredMs
+}
 // Main -
 func (bzn *BytezeroNet) Main() {
     logbz.Debugln("BytezeroNet Main...")

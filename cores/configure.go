@@ -38,6 +38,11 @@ type AppWebConfigure struct {
     Heart int32 `yaml:"heart" json:"heart" binding:"required"`
 }
 
+// AppCredentialConfig -
+type AppCredentialConfig struct {
+    ExpiredMs int64 `yaml:"expiredMs" json:"expiredMs" binding:"required"`
+}
+
 // AppConfigure -
 type AppConfigure struct {
     Name string  `yaml:"name" json:"name" binding:"required"`
@@ -48,6 +53,7 @@ type AppConfigure struct {
     RWBufferLen int `yaml:"rwBufferLen" json:"rwBufferLen" binding:"required"`
     Appid string `yaml:"appid" json:"appid" binding:"required"`
     Appkey string `yaml:"appkey" json:"appkey" binding:"required"`
+    Credential AppCredentialConfig `yaml:"credential" json:"credential" binding:"required"`
 }
 
 // Configure -

@@ -20,6 +20,7 @@ type BZNet interface {
     // credential.
     AppID() string
     AppKey() string
+    CredentialExpiredMs() int64
 }
 
 

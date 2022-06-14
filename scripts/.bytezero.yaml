@@ -11,4 +11,6 @@ app:
   rwBufferLen: 10485760
   appid: bytezero-appid
   appkey: secret
+  credential:
+    expiredMs: 60000
 
