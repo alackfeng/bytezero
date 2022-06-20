@@ -22,6 +22,8 @@ type Connection struct {
     // Info.
     DeviceId string
     SessionId string
+
+    data chan []byte
 }
 
 var _ bz.BZNetReceiver = (*Connection)(nil)
@@ -33,12 +35,13 @@ func NewConnection(bzn bz.BZNet, c *net.TCPConn) *Connection {
         bzn: bzn,
         maxBufferLen: defaultMaxBufferLen*10,
         BufferRead: *utils.NewBufferRead(defaultMaxBufferLen*10),
+        data: make(chan []byte, 10240),
     }
 }
 
 // Main -
 func (c *Connection) Main()*Connection {
-    // go c.handleSender()
+    go c.handleTrans()
     go c.handleRecevier()
     return c
 }
@@ -88,7 +91,9 @@ func (c Connection) String() string {
 
 // Transit - to connection.
 func (c *Connection) Transit(buf []byte) error {
-    return c.Send(buf)
+    // return c.Send(buf)
+    c.data <- buf
+    return nil
 }
 
 // Send -
@@ -103,9 +108,17 @@ func (c *Connection) Send(buf []byte) error {
     return nil
 }
 
-// handleSender -
-func (c *Connection) handleSender() {
-
+// handleTrans -
+func (c *Connection) handleTrans() {
+    for {
+        select {
+        case d, ok := <- c.data:
+            if !ok {
+                return
+            }
+            c.Send(d)
+        }
+    }
 }
 
 // handleRecevier -
