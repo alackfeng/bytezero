@@ -51,9 +51,11 @@ func (c *Channel) Join(o *Connection) *Channel {
 // LeaveAll -
 func (c *Channel) LeaveAll() {
     if c.rt != nil {
+        fmt.Println("Channel::LeaveAll - rt.")
         c.rt.Quit()
     }
     if c.lc != nil {
+        fmt.Println("Channel::LeaveAll - lc.")
         c.lc.Quit()
     }
 }

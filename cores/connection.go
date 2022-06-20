@@ -168,7 +168,7 @@ func (c *Connection) handleRecevier() error {
         // currOffset += out.Len()
         // remainLen = readOffset - currOffset
 
-        fmt.Printf(">>>>> Connection handleRecevier - recv buffer len %d, unmarshal %d, count %d, payload(%d).\n", c.BufferRead.Length(), out.Len(), count, out.Length)
+        // fmt.Printf(">>>>> Connection handleRecevier - recv buffer len %d, unmarshal %d, count %d, payload(%d).\n", c.BufferRead.Length(), out.Len(), count, out.Length)
         // fmt.Printf(">>>>> Connection handleRecevier - recv buffer len %d, unmarshal %d, count %d.\n", len, out.Len(), count)
         count++
         if err := c.bzn.HandlePt(c, out); err != nil {

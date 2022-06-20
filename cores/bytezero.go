@@ -97,6 +97,7 @@ func (bzn *BytezeroNet) StartTcp() {
 
 // HandleConnClose -
 func (bzn *BytezeroNet) HandleConnClose(connection interface{}) {
+    fmt.Println("BytezeroNet::HandleConnClose - ")
     bzn.l.Lock()
     if c, ok := connection.(*Connection); ok {
         if channel, ok := bzn.channels[c.ChannId()]; ok {
@@ -106,6 +107,7 @@ func (bzn *BytezeroNet) HandleConnClose(connection interface{}) {
         delete(bzn.connections, c.Id())
     }
     bzn.l.Unlock()
+    fmt.Println("BytezeroNet::HandleConnClose - over.")
 }
 
 // HandleConn -
@@ -146,11 +148,22 @@ func (bzn *BytezeroNet) HandlePt(conn bz.BZNetReceiver, commonPt *protocol.Commo
             }
             bzn.l.Unlock()
         }
+    case protocol.Method_STREAM_DATA:
+   /*     if c, ok := conn.(*Connection); ok {
+            channId := c.ChannId()
+            if _, ok := bzn.channels[channId]; ok {
+                _, err := commonPt.Marshal()
+                if err != nil {
+                    break
+                }
+	    }
+	}
+        return nil 
+*/	
+	fallthrough
     case protocol.Method_STREAM_CREATE:
         fallthrough
     case protocol.Method_STREAM_ACK:
-        fallthrough
-    case protocol.Method_STREAM_DATA:
         fallthrough
     case protocol.Method_STREAM_CLOSE:
         if c, ok := conn.(*Connection); ok {
