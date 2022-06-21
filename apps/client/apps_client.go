@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -343,6 +344,9 @@ func (app *AppsClient) wait() error {
             }
             // filePath := "E:\\TestData\\视频\\nini.3gp"
             filePath := "E:\\TestData\\视频\\IMG_2790.MOV"
+	    if runtime.GOOS == "linux" {
+                filePath = "/home/vagrant/keycloak-10.0.2.zip"
+            }
             if len(options) > 3 {
                 filePath = options[3]
             }
