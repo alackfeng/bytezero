@@ -3,6 +3,7 @@ package cores
 import (
 	"fmt"
 	"net"
+	"time"
 
 	bz "github.com/alackfeng/bytezero/bytezero"
 	"github.com/alackfeng/bytezero/bytezero/protocol"
@@ -18,6 +19,7 @@ type Connection struct {
     bzn bz.BZNet
     maxBufferLen int
     quit bool
+    durationMs int64
 
     // Info.
     DeviceId string
@@ -183,6 +185,15 @@ func (c *Connection) handleRecevier() error {
 
         // fmt.Printf(">>>>> Connection handleRecevier - recv buffer len %d, unmarshal %d, count %d, payload(%d).\n", c.BufferRead.Length(), out.Len(), count, out.Length)
         // fmt.Printf(">>>>> Connection handleRecevier - recv buffer len %d, unmarshal %d, count %d.\n", len, out.Len(), count)
+        if out.Type == protocol.Method_CHANNEL_CREATE {
+            c.durationMs = utils.NowDiff(int64(out.Timestamp)).Milliseconds()
+        }
+        ms := utils.Abs(utils.NowDiff(int64(out.Timestamp)).Milliseconds() - c.durationMs)
+        if ms > 3000 {
+            fmt.Printf("Connection.handleRecevier - out %v, dura: %d(%d) ms, ts: %v, %v\n", out, ms, c.durationMs,
+                utils.MsFormat(int64(out.Timestamp)), utils.MsFormat(time.Now().UnixMilli()))
+        }
+
         count++
         if err := c.bzn.HandlePt(c, out); err != nil {
             return err

@@ -158,8 +158,8 @@ func (bzn *BytezeroNet) HandlePt(conn bz.BZNetReceiver, commonPt *protocol.Commo
                 }
 	    }
 	}
-        return nil 
-*/	
+        return nil
+*/
 	fallthrough
     case protocol.Method_STREAM_CREATE:
         fallthrough

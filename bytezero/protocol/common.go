@@ -3,6 +3,7 @@ package protocol
 import (
 	"encoding/binary"
 	"fmt"
+	"time"
 )
 
 const FixedHead = 0xABCD
@@ -52,6 +53,7 @@ type HeadPt struct {
     Fixed uint16 `form:"Fixed" json:"Fixed" xml:"Fixed" bson:"Fixed" binding:"required"`
     Ver VersionNumber `form:"Ver" json:"Ver" xml:"Ver" bson:"Ver" binding:"required"`
     Type Method `form:"Type" json:"Type" xml:"Type" bson:"Type" binding:"required"`
+    Timestamp uint64  `form:"Timestamp" json:"Timestamp" xml:"Timestamp" bson:"Timestamp" binding:"required"`
 }
 
 // NewHeadPb -
@@ -60,13 +62,14 @@ func NewHeadPb(method Method) *HeadPt {
         Fixed: uint16(FixedHead),
         Ver: CurrentVersion,
         Type: method,
+        Timestamp: uint64(time.Now().UnixNano() / 1e6),
     }
 }
 
 // Len -
 func (c *HeadPt) Len() int {
-    // Fixed + Ver + Type
-    return 2 + 1 + 1
+    // Fixed + Ver + Type + Timestamp
+    return 2 + 1 + 1 + 8
 }
 
 // Pack -
@@ -78,6 +81,7 @@ func (c *HeadPt) Pack(buf []byte) error {
     binary.BigEndian.PutUint16(buf[i:], c.Fixed); i += 2
     buf[i] = byte(c.Ver); i += 1
     buf[i] = byte(c.Type); i += 1
+    binary.BigEndian.PutUint64(buf[i:], c.Timestamp); i += 8
     // fmt.Printf("Pack: Fixed.0x%X, Ver.%v, Type.%v.\n", c.Fixed, c.Ver, c.Type)
     return nil
 }
@@ -94,6 +98,7 @@ func (c *HeadPt) UnPack(buf []byte) error {
     }
     c.Ver = VersionNumber(buf[i]); i += 1
     c.Type = Method(buf[i]); i += 1
+    c.Timestamp = binary.BigEndian.Uint64(buf[i:]); i += 8
     // fmt.Printf("UnPack: Fixed.0x%X, Ver.%v, Type.%v.\n", c.Fixed, c.Ver, c.Type)
     return nil
 }
@@ -112,6 +117,11 @@ func NewCommPb(method Method) *CommonPt {
     return &CommonPt{
         HeadPt: *NewHeadPb(method),
     }
+}
+
+// Ts -
+func (c *CommonPt) Ts() uint64 {
+    return c.HeadPt.Timestamp
 }
 
 // Len -
