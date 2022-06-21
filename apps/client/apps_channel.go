@@ -386,7 +386,7 @@ func (a *AppsChannel) onStreamCreate(commonPt *protocol.CommonPt) error {
         logc.Errorf("AppsChannel.onStreamCreate - StreamCreatePt UnmarshalP error.%v.", err.Error())
         return err
     }
-    a.durationMs = utils.Abs(utils.NowDiff(int64(streamCreatePt.Timestamp)).Milliseconds())
+    a.durationMs = utils.NowDiff(int64(streamCreatePt.Timestamp)).Milliseconds()
     // 通知.
     a.l.Lock()
     defer a.l.Unlock()
@@ -437,9 +437,9 @@ func (a *AppsChannel) onStreamData(commonPt *protocol.CommonPt) error {
         return err
     }
 
-    ms := utils.Abs(utils.NowDiff(int64(streamDataPt.Timestamp)).Milliseconds()) - a.durationMs
+    ms := utils.Abs(utils.NowDiff(int64(streamDataPt.Timestamp)).Milliseconds() - a.durationMs)
     if ms > 3000 {
-        fmt.Printf("AppsChannel.onStreamData - StreamDataPt %v, dura: %v ms, ts: %v, %v\n", streamDataPt, ms,
+        fmt.Printf("AppsChannel.onStreamData - StreamDataPt %v, dura: %d(%d) ms, ts: %v, %v\n", streamDataPt, ms, a.durationMs,
             utils.MsFormat(int64(streamDataPt.Timestamp)), utils.MsFormat(time.Now().UnixMilli()))
     }
 
