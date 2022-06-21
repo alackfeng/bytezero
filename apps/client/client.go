@@ -16,6 +16,7 @@ type Client interface {
     AppId() string
     DeviceId() string
     TargetAddress() string
+    Api(uri string) string
 }
 
 // ChannelSender -

@@ -5,6 +5,8 @@ import (
 	"math/big"
 	mrand "math/rand"
 	"time"
+
+	"github.com/hashicorp/go-uuid"
 )
 
 
@@ -36,4 +38,10 @@ func RandomBytesQ(len int, r []byte) []byte {
         r[i] = randomLetters[n % int64(randomLettersLen)]
     }
     return r
+}
+
+// UUID -
+func UUID() string {
+    u, _ := uuid.GenerateUUID()
+    return u
 }

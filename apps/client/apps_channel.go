@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/alackfeng/bytezero/bytezero/protocol"
+	bzweb "github.com/alackfeng/bytezero/bytezero/web"
 	"github.com/alackfeng/bytezero/cores/utils"
 )
 
@@ -91,12 +92,12 @@ func (a *AppsChannel) Send(buf []byte) error {
 
 // Start -
 func (a *AppsChannel) Start(address, sessionId string) error {
-    fmt.Printf("AppsChannel.Start - create connection channel sessionId<%s>, to <%s>.\n", sessionId, address)
     // 1. 建立Tcp连接.
     a.address = address
     if err := a.dial(); err != nil {
         return err
     }
+    fmt.Printf("AppsChannel.Start - create connection channel sessionId<%s>, to <%s>, local <%s>.\n", sessionId, address, a.LocalAddr().String())
     // 2. 启动消息接收.
     go a.handleRecevier()
 
@@ -262,11 +263,19 @@ func (a *AppsChannel) handlePt(commonPt *protocol.CommonPt) error {
 
 // channelCreate -
 func (a *AppsChannel) channelCreate(sessionId string) (err error) {
+
+    httpClient := utils.NewHttpClient()
+    result := &bzweb.CredentialResult{}
+    err = httpClient.GetJson(a.app.Api("/api/v1/bridge/credential/get"), result)
+    if err != nil {
+        return err
+    }
     a.sessionId = sessionId
     channelCreatePt := &protocol.ChannelCreatePt {
         AppId: []byte(a.app.AppId()),
         DeviceId: []byte(a.app.DeviceId()),
         SessionId: []byte(sessionId),
+        Sign: []byte(result.User + ":" + result.Pass),
     }
     mByte, err := protocol.Marshal(channelCreatePt)
     if err != nil {

@@ -3,6 +3,7 @@ package web
 import (
 	"net/http"
 
+	bzweb "github.com/alackfeng/bytezero/bytezero/web"
 	"github.com/alackfeng/bytezero/cores/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -21,22 +22,12 @@ func (gw *GinWeb) RouterBridge(grg *gin.RouterGroup) {
 }
 
 
-// CredentialGetReq -
-type CredentialGetReq struct {
-}
-
-// CredentialResult -
-type CredentialResult struct {
-    User        string    `form:"User" json:"User" xml:"User" bson:"User" binding:"required"`
-    Pass        string    `form:"Pass" json:"Pass" xml:"Pass" bson:"Pass" binding:"required"`
-    Expired     int64    `form:"Expired" json:"Expired" xml:"Expired" bson:"Expired" binding:"required"`
-}
-
 // HandleBridgeCredentialGet - 获取认证信息.
 // http://192.168.90.162:7790/api/v1/bridge/credential/get
 func (gw *GinWeb) HandleBridgeCredentialGet(c *gin.Context) {
 	// gw.HandleAction(Module_api, Operator{}, c)
-    result := &CredentialResult{
+
+    result := &bzweb.CredentialResult{
         Expired: utils.NowMs() + gw.bzn.CredentialExpiredMs(),
     }
     cred := utils.NewCredential(result.Expired)

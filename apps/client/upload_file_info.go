@@ -3,19 +3,34 @@ package client
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/alackfeng/bytezero/cores/utils"
+)
+
+
+
+const (
+    CmdNameCreateUploadTask = "createUploadTask"
+    CmdNameFinishUploadTask = "finishUploadTask"
+    CmdNameReceivedFinishMessage = "receivedFinishMessage"
 )
 
 // UploadFileInfo -
 type UploadFileInfo struct {
-    FilePath string `form:"FilePath" json:"FilePath" xml:"FilePath" bson:"FilePath" binding:"required"`
-    FileName string `form:"FileName" json:"FileName" xml:"FileName" bson:"FileName" binding:"required"`
-    FileSize int64 `form:"FileSize" json:"FileSize" xml:"FileSize" bson:"FileSize" binding:"required"`
-    FileMd5 string `form:"FileMd5" json:"FileMd5" xml:"FileMd5" bson:"FileMd5" binding:"required"`
+    CmdName string `form:"cmdName" json:"cmdName" xml:"cmdName" bson:"cmdName" binding:"required"`
+    TaskId string `form:"taskId" json:"taskId" xml:"taskId" bson:"taskId" binding:"required"`
+    FilePath string `form:"path" json:"path" xml:"path" bson:"path" binding:"required"`
+    FileName string `form:"name" json:"name" xml:"name" bson:"name" binding:"required"`
+    FileSize int64 `form:"len" json:"len" xml:"len" bson:"len" binding:"required"`
+    FileMd5 string `form:"md5" json:"md5" xml:"md5" bson:"md5" binding:"required"`
 }
 
 // NewUploadFileInfo -
-func NewUploadFileInfo() *UploadFileInfo {
-    return &UploadFileInfo{}
+func NewUploadFileInfo(cmdName string) *UploadFileInfo {
+    return &UploadFileInfo{
+        CmdName: cmdName,
+        TaskId: utils.UUID(),
+    }
 }
 
 // To -

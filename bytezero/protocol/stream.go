@@ -319,7 +319,7 @@ func (c *StreamDataPt) Unmarshal(buf []byte) error {
     c.Od = ChannelId(binary.BigEndian.Uint32(buf[i:])); i += 4
     c.Id = StreamId(binary.BigEndian.Uint32(buf[i:])); i += 4
     c.Binary = Boolean(buf[i]); i += 1
-    c.Timestamp = binary.BigEndian.Uint64(buf[i:]); i += 4
+    c.Timestamp = binary.BigEndian.Uint64(buf[i:]); i += 8
     c.Total = binary.BigEndian.Uint32(buf[i:]); i += 4
     c.Offset = binary.BigEndian.Uint32(buf[i:]); i += 4
     c.Length = binary.BigEndian.Uint32(buf[i:]); i += 4
@@ -336,7 +336,7 @@ func (c *StreamDataPt) Marshal(buf []byte) ([]byte, error) {
     binary.BigEndian.PutUint32(buf[i:], uint32(c.Od)); i += 4
     binary.BigEndian.PutUint32(buf[i:], uint32(c.Id)); i += 4
     buf[i] = byte(c.Binary); i += 1
-    binary.BigEndian.PutUint64(buf[i:], c.Timestamp); i += 4
+    binary.BigEndian.PutUint64(buf[i:], c.Timestamp); i += 8
     binary.BigEndian.PutUint32(buf[i:], c.Total); i += 4
     binary.BigEndian.PutUint32(buf[i:], c.Offset); i += 4
     binary.BigEndian.PutUint32(buf[i:], c.Length); i += 4

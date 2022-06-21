@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/alackfeng/bytezero/bytezero/protocol"
+	"github.com/alackfeng/bytezero/cores/utils"
 )
 
 type Mode uint8
@@ -84,6 +85,8 @@ func (a *AppsUploadResource) uploadFile() (err error) {
 
     fstat, _ := f.Stat()
     a.info = UploadFileInfo{
+        CmdName: CmdNameCreateUploadTask,
+        TaskId: utils.UUID(),
         FilePath: a.filePath,
         FileName: fstat.Name(),
         FileSize: fstat.Size(),
@@ -225,15 +228,15 @@ func (a *AppsUploadResource) OnStreamData(buffer []byte, b protocol.Boolean) {
                 return
             }
         }
-        if n, err := a.f.Write(buffer); err != nil || n != len(buffer) {
-            if err != nil {
-                fmt.Printf("AppsUploadResource.OnStreamData - write to<%s> failed, error.%v.\n", a.f.Name(), err.Error())
-            } else {
-                fmt.Printf("AppsUploadResource.OnStreamData - write to<%s> failed not all writen.%d.\n", a.f.Name(), n)
-            }
-            return
-        }
-        a.f5.Write(buffer)
+        // if n, err := a.f.Write(buffer); err != nil || n != len(buffer) {
+        //     if err != nil {
+        //         fmt.Printf("AppsUploadResource.OnStreamData - write to<%s> failed, error.%v.\n", a.f.Name(), err.Error())
+        //     } else {
+        //         fmt.Printf("AppsUploadResource.OnStreamData - write to<%s> failed not all writen.%d.\n", a.f.Name(), n)
+        //     }
+        //     return
+        // }
+        // a.f5.Write(buffer)
     } else {
         fmt.Printf("AppsUploadResource.OnStreamData - buffer %d, binary %v.\n", len(buffer), b)
     }

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"math/rand"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -84,6 +85,13 @@ func (app *AppsClient) DeviceId() string {
 // TargetAddress -
 func (app *AppsClient) TargetAddress() string {
     return app.tcpAddress
+}
+
+// Api - http://192.168.90.162:7790/api/v1/bridge/credential/get
+func (app *AppsClient) Api(uri string) string {
+    tcpAddr, _ := net.ResolveTCPAddr("tcp", app.tcpAddress)
+    api := tcpAddr.AddrPort().Addr().String() + ":" + utils.IntToString(int(tcpAddr.AddrPort().Port() + 2))
+    return fmt.Sprintf("http://%s%s",api, uri)
 }
 
 // show -
@@ -324,7 +332,7 @@ func (app *AppsClient) wait() error {
         //     go app.handleUdpSender()
         } else if cmd == "upload" || cmd == "u" || cmd == "U" {
             // filePath := "E:\\TestData\\视频\\IMG_2790.MOV"
-            sessionId := "1"
+            sessionId := "session-id"
             if len(options) > 1 {
                 sessionId = options[1]
             }
@@ -339,7 +347,7 @@ func (app *AppsClient) wait() error {
                 filePath = options[3]
             }
             for i:= 0; i<1; i++ {
-                sessionId =  fmt.Sprintf("%s_%d", sessionId, i)
+                sessionId =  fmt.Sprintf("%s-%d", sessionId, i)
                 app.l.Lock()
                 uploadResource := NewAppsUploadResourceUpload(app, sessionId, filePath, bufferLen)
                 if err := uploadResource.Start(); err != nil {
@@ -350,7 +358,7 @@ func (app *AppsClient) wait() error {
             }
 
         } else if cmd == "answer" || cmd == "a" || cmd == "A" {
-            sessionId := "1"
+            sessionId := "session-id"
             if len(options) > 1 {
                 sessionId = options[1]
             }
@@ -359,7 +367,7 @@ func (app *AppsClient) wait() error {
                 savePath = options[2]
             }
             for i:= 0; i<1; i++ {
-                sessionId =  fmt.Sprintf("%s_%d", sessionId, i)
+                sessionId =  fmt.Sprintf("%s-%d", sessionId, i)
                 app.l.Lock()
                 uploadResource := NewAppsUploadResourceAnswer(app, sessionId, savePath)
                 if err := uploadResource.Start(); err != nil {
