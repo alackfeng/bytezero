@@ -437,10 +437,10 @@ func (a *AppsChannel) onStreamData(commonPt *protocol.CommonPt) error {
         return err
     }
 
-    ms := utils.Abs(utils.NowDiff(int64(streamDataPt.Timestamp)).Milliseconds())
-    if ms > a.durationMs + 1 {
-        fmt.Printf("AppsChannel.onStreamData - StreamDataPt %v, dura: %v ms, ts: %v, %v, %d\n", streamDataPt, ms,
-            utils.MsFormat(int64(streamDataPt.Timestamp)), utils.MsFormat(time.Now().UnixMilli()), a.durationMs)
+    ms := utils.Abs(utils.NowDiff(int64(streamDataPt.Timestamp)).Milliseconds()) - a.durationMs
+    if ms > 3000 {
+        fmt.Printf("AppsChannel.onStreamData - StreamDataPt %v, dura: %v ms, ts: %v, %v\n", streamDataPt, ms,
+            utils.MsFormat(int64(streamDataPt.Timestamp)), utils.MsFormat(time.Now().UnixMilli()))
     }
 
     a.l.Lock()
