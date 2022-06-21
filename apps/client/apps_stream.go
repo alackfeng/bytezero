@@ -2,9 +2,9 @@ package client
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/alackfeng/bytezero/bytezero/protocol"
+	"github.com/alackfeng/bytezero/cores/utils"
 )
 
 // AppsStream -
@@ -33,6 +33,7 @@ func (a *AppsStream) Create() error {
     streamCreatePt := &protocol.StreamCreatePt{
         Od: a.Sender.Id(),
         Id: a.Id,
+        Timestamp: uint64(utils.NowMs()),
     }
     if len(a.extra) != 0 {
         streamCreatePt.Ver = protocol.StreamVerExtra
@@ -103,6 +104,7 @@ func (a *AppsStream) Ack(code protocol.ErrCode, message string) error {
         Id: a.Id,
         Code: protocol.ErrCode(code),
         Message: []byte(message),
+        Timestamp: uint64(utils.NowMs()),
     }
     mByte, err := protocol.Marshal(streamAckPt)
     if err != nil {
@@ -166,7 +168,7 @@ func (a *AppsStream) SendData(m []byte) error {
             Od: a.Sender.Id(),
             Id: a.Id,
             Binary: protocol.BooleanTrue,
-            Timestamp: uint64(time.Now().UnixNano()),
+            Timestamp: uint64(utils.NowMs()),
             Total: uint32(l),
             Offset: uint32(i),
             Length: uint32(len(data)),
@@ -196,7 +198,7 @@ func (a *AppsStream) SendSignal(m []byte) error {
             Od: a.Sender.Id(),
             Id: a.Id,
             Binary: protocol.BooleanFalse,
-            Timestamp: uint64(time.Now().UnixNano()),
+            Timestamp: uint64(utils.NowMs()),
             Total: uint32(l),
             Offset: uint32(i),
             Length: uint32(len(data)),

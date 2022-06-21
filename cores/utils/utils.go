@@ -77,6 +77,17 @@ func NowMs() int64 {
 	return time.Now().UnixNano() / 1e6
 }
 
+// Abs -
+func Abs(n int64) int64 {
+    y := n >> 63
+    return (n ^ y) - y
+}
+
+// NowDiff - 当前时间差.
+func NowDiff(ts int64) time.Duration {
+    return time.Now().Sub(time.Unix(0, ts*1000000))
+}
+
 // TimestampFormat - ms format.
 func TimestampFormat(ts int64) string {
 	return time.Unix(0, ts*1000000).Format(time.RFC3339Nano)

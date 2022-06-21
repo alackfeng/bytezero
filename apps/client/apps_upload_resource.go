@@ -223,11 +223,11 @@ func (a *AppsUploadResource) OnStreamError(code int, message string) {
 func (a *AppsUploadResource) OnStreamData(buffer []byte, b protocol.Boolean) {
     // fmt.Printf("AppsUploadResource.OnStreamData - buffer %d, binary %v.\n", len(buffer), b)
     if b == protocol.BooleanTrue && a.mode == ModeAnswer {
-        if a.f == nil {
-            if err := a.answerFile(); err != nil {
-                return
-            }
-        }
+        // if a.f == nil {
+        //     if err := a.answerFile(); err != nil {
+        //         return
+        //     }
+        // }
         // if n, err := a.f.Write(buffer); err != nil || n != len(buffer) {
         //     if err != nil {
         //         fmt.Printf("AppsUploadResource.OnStreamData - write to<%s> failed, error.%v.\n", a.f.Name(), err.Error())

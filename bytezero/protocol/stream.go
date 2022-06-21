@@ -72,6 +72,7 @@ type StreamCreatePt struct {
     Ver StreamVer `form:"Ver" json:"Ver" xml:"Ver" bson:"Ver" binding:"required"` // Stream Protocol Version.
     Od ChannelId `form:"Od" json:"Od" xml:"Od" bson:"Od" binding:"required"` // Channel id.
     Id StreamId `form:"Id" json:"Id" xml:"Id" bson:"Id" binding:"required"` // stream id.
+    Timestamp uint64  `form:"Timestamp" json:"Timestamp" xml:"Timestamp" bson:"Timestamp" binding:"required"` // Timestamp.
     Extra []byte `form:"Extra" json:"Extra" xml:"Extra" bson:"Extra" binding:"required"` // stream extra info for use.
 }
 var _ BZProtocol = (*StreamCreatePt)(nil)
@@ -91,7 +92,7 @@ func (c *StreamCreatePt) Type() Method {
 
 // Len -
 func (c *StreamCreatePt) Len() int {
-    l := 1 + 4 + 4 // default.
+    l := 1 + 4 + 4 + 8// default.
     if c.Ver.Match(StreamVerExtra) {
         l += 4 + len(c.Extra)
     }
@@ -112,6 +113,7 @@ func (c *StreamCreatePt) Unmarshal(buf []byte) error {
     c.Ver = StreamVer(buf[i]); i += 1
     c.Od = ChannelId(binary.BigEndian.Uint32(buf[i:])); i += 4
     c.Id = StreamId(binary.BigEndian.Uint32(buf[i:])); i += 4
+    c.Timestamp = binary.BigEndian.Uint64(buf[i:]); i += 8
     if c.Ver.Match(StreamVerExtra) {
         l := binary.BigEndian.Uint32(buf[i:]); i += 4
         fmt.Println("StreamCreatePt::Unmarshal - extra, length", l)
@@ -129,6 +131,7 @@ func (c *StreamCreatePt) Marshal(buf []byte) ([]byte, error) {
     buf[i] = byte(c.Ver); i += 1 // Stream Protocol Version.
     binary.BigEndian.PutUint32(buf[i:], uint32(c.Od)); i += 4
     binary.BigEndian.PutUint32(buf[i:], uint32(c.Id)); i += 4
+    binary.BigEndian.PutUint64(buf[i:], c.Timestamp); i += 8
     if c.Ver.Match(StreamVerExtra) {
         fmt.Println("StreamCreatePt::Marshal - extra, length", len(c.Extra))
         binary.BigEndian.PutUint32(buf[i:], uint32(len(c.Extra))); i += 4
@@ -145,6 +148,7 @@ func (c *StreamCreatePt) Marshal(buf []byte) ([]byte, error) {
 type StreamAckPt struct {
     Code ErrCode `form:"Code" json:"Code" xml:"Code" bson:"Code" binding:"required"` // ack Code.
     Message []byte `form:"Message" json:"Message" xml:"Message" bson:"Message" binding:"required"` // ack Message.
+    Timestamp uint64  `form:"Timestamp" json:"Timestamp" xml:"Timestamp" bson:"Timestamp" binding:"required"` // Timestamp.
     Extra []byte `form:"Extra" json:"Extra" xml:"Extra" bson:"Extra" binding:"required"` // ack Message.
     Od ChannelId `form:"Od" json:"Od" xml:"Od" bson:"Od" binding:"required"` // Channel id.
     Id StreamId `form:"Id" json:"Id" xml:"Id" bson:"Id" binding:"required"` // stream id.
@@ -164,7 +168,7 @@ func (c *StreamAckPt) Type() Method {
 
 // Len -
 func (c *StreamAckPt) Len() int {
-    return 4 + 4 + 4 + 4 + len(c.Message) + 4 + len(c.Extra)
+    return 4 + 4 + 4 + 4 + 8 + len(c.Message) + 4 + len(c.Extra)
 }
 
 // String -
@@ -181,6 +185,7 @@ func (c *StreamAckPt) Unmarshal(buf []byte) error {
     c.Od = ChannelId(binary.BigEndian.Uint32(buf[i:])); i += 4
     c.Id = StreamId(binary.BigEndian.Uint32(buf[i:])); i += 4
     c.Code = ErrCode(binary.BigEndian.Uint32(buf[i:])); i += 4
+    c.Timestamp = binary.BigEndian.Uint64(buf[i:]); i += 8
 
     lc := binary.BigEndian.Uint32(buf[i:]); i += 4
     c.Message = buf[i:i+lc]; i += lc
@@ -198,6 +203,7 @@ func (c *StreamAckPt) Marshal(buf []byte) ([]byte, error) {
     binary.BigEndian.PutUint32(buf[i:], uint32(c.Od)); i += 4
     binary.BigEndian.PutUint32(buf[i:], uint32(c.Id)); i += 4
     binary.BigEndian.PutUint32(buf[i:], uint32(c.Code)); i += 4
+    binary.BigEndian.PutUint64(buf[i:], c.Timestamp); i += 8
 
     binary.BigEndian.PutUint32(buf[i:], uint32(len(c.Message))); i += 4
     ByteCopy(buf, i, c.Message, 0); i += len(c.Message)

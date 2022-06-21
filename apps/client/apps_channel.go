@@ -25,6 +25,7 @@ type AppsChannel struct {
     cid protocol.ChannelId
     ack chan protocol.ErrCode
     state protocol.ChannelState
+    durationMs int64
 
     nextSid protocol.StreamId
 
@@ -385,6 +386,7 @@ func (a *AppsChannel) onStreamCreate(commonPt *protocol.CommonPt) error {
         logc.Errorf("AppsChannel.onStreamCreate - StreamCreatePt UnmarshalP error.%v.", err.Error())
         return err
     }
+    a.durationMs = utils.Abs(utils.NowDiff(int64(streamCreatePt.Timestamp)).Milliseconds())
     // 通知.
     a.l.Lock()
     defer a.l.Unlock()
@@ -400,13 +402,15 @@ func (a *AppsChannel) onStreamCreate(commonPt *protocol.CommonPt) error {
         }
     }
     // 响应.
-    fmt.Printf("AppsChannel.onStreamCreate - create %d, code %d, message %s \n", streamHandle.Id, code, err.Error())
+    fmt.Printf("AppsChannel.onStreamCreate - create %d, code %d, message %s, duration %d ms/\n", streamHandle.Id, code, err.Error(), a.durationMs)
     return streamHandle.Ack(code, err.Error())
 }
 
 // onStreamAck - code, message, chanId.
 func (a *AppsChannel) onStreamAck(commonPt *protocol.CommonPt) error {
-    streamAckPt := &protocol.StreamAckPt{}
+    streamAckPt := &protocol.StreamAckPt{
+        Timestamp: uint64(utils.NowMs()),
+    }
     if err := commonPt.UnmarshalP(streamAckPt); err != nil {
         return err
     }
@@ -432,7 +436,12 @@ func (a *AppsChannel) onStreamData(commonPt *protocol.CommonPt) error {
     if err := commonPt.UnmarshalP(streamDataPt); err != nil {
         return err
     }
-    // fmt.Printf("AppsChannel.onStreamData - StreamDataPt %v.\n", streamDataPt)
+
+    ms := utils.Abs(utils.NowDiff(int64(streamDataPt.Timestamp)).Milliseconds())
+    if ms > a.durationMs + 1 {
+        fmt.Printf("AppsChannel.onStreamData - StreamDataPt %v, dura: %v ms, ts: %v, %v, %d\n", streamDataPt, ms,
+            utils.MsFormat(int64(streamDataPt.Timestamp)), utils.MsFormat(time.Now().UnixMilli()), a.durationMs)
+    }
 
     a.l.Lock()
     defer a.l.Unlock()
