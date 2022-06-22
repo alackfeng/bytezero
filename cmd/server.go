@@ -23,6 +23,7 @@ import (
 	"syscall"
 
 	bze "github.com/alackfeng/bytezero/cores"
+	profile "github.com/alackfeng/bytezero/cores/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -38,6 +39,15 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("bytezero server called")
+
+        profile.InitGC(100)
+        stopFunc, err := profile.ProfileIfEnabled()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Bytezero Server Error: %s\n", err.Error())
+			return
+		}
+		defer stopFunc() // to be executed as late as possible
+
 
         maxBufferLen, _ := cmd.Flags().GetInt("max-buffer-len")
         rwBufferLen, _ := cmd.Flags().GetInt("rw-buffer-len")
