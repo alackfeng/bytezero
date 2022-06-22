@@ -11,6 +11,7 @@ import (
 )
 
 const defaultMaxBufferLen = 1538
+const transDataLenghtDefault = 10240
 
 // Connection -
 type Connection struct {
@@ -25,6 +26,7 @@ type Connection struct {
     DeviceId string
     SessionId string
 
+    dataSync bool
     data chan []byte
 }
 
@@ -32,18 +34,24 @@ var _ bz.BZNetReceiver = (*Connection)(nil)
 
 // NewConnection -
 func NewConnection(bzn bz.BZNet, c *net.TCPConn) *Connection {
-    return &Connection{
+    cc := &Connection {
         TCPConn: c,
         bzn: bzn,
         maxBufferLen: defaultMaxBufferLen*10,
         BufferRead: *utils.NewBufferRead(defaultMaxBufferLen*10),
-        data: make(chan []byte, 10240),
+        dataSync: true,
     }
+    if !cc.dataSync {
+        cc.data = make(chan []byte, transDataLenghtDefault)
+    }
+    return cc
 }
 
 // Main -
 func (c *Connection) Main()*Connection {
-    go c.handleTrans()
+    if !c.dataSync {
+        go c.handleTrans()
+    }
     go c.handleRecevier()
     return c
 }
@@ -93,8 +101,11 @@ func (c Connection) String() string {
 
 // Transit - to connection.
 func (c *Connection) Transit(buf []byte) error {
-    // return c.Send(buf)
-    c.data <- buf
+    if !c.dataSync {
+        c.data <- buf
+    } else {
+        return c.Send(buf)
+    }
     return nil
 }
 
@@ -119,6 +130,14 @@ func (c *Connection) handleTrans() {
                 return
             }
             c.Send(d)
+            l := len(c.data)
+            for i:=0; i<l; i++ {
+                d, ok := <- c.data
+                if !ok {
+                    return
+                }
+                c.Send(d)
+            }
         }
     }
 }
@@ -190,7 +209,7 @@ func (c *Connection) handleRecevier() error {
         }
         ms := utils.Abs(utils.NowDiff(int64(out.Timestamp)).Milliseconds() - c.durationMs)
         if ms > 3000 {
-            fmt.Printf("Connection.handleRecevier - out %v, dura: %d(%d) ms, ts: %v, %v\n", out, ms, c.durationMs,
+            fmt.Printf("Connection.handleRecevier - out %v, dura: %d(%d) ms, ts: %v, %v\n", out.Type, ms, c.durationMs,
                 utils.MsFormat(int64(out.Timestamp)), utils.MsFormat(time.Now().UnixMilli()))
         }
 
