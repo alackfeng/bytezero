@@ -39,6 +39,7 @@ type AppsUploadResource struct {
     f *os.File
     info UploadFileInfo
     f5 hash.Hash
+    offset int
 
 }
 var _ StreamObserver = (*AppsUploadResource)(nil)
@@ -126,8 +127,10 @@ func (a *AppsUploadResource) uploadFile() (err error) {
     }
     a.info.FileMd5 = fmt.Sprintf("%X", a.f5.Sum(nil))
     fmt.Printf("AppsUploadResource.uploadFile - end.. upload file<%s> size<%d> md5<%s>, at Channel#%dStream#%d over.\n", a.filePath, a.info.FileSize, a.info.FileMd5, a.channelHandle.Id(), a.streamHandle.StreamId())
-    a.channelHandle.StreamClose(a.streamId, a.info.ToMd5())
-    a.app.ChannelCloseByHandle(a.channelHandle)
+    a.info.CmdName = CmdNameFinishUploadTask
+    a.streamHandle.SendSignal(a.info.To())
+    // a.channelHandle.StreamClose(a.streamId, a.info.ToMd5())
+    // a.app.ChannelCloseByHandle(a.channelHandle)
     // go a.uploadFile()
     return nil
 }
@@ -204,6 +207,8 @@ func (a *AppsUploadResource) onStream(s StreamHandle) (protocol.ErrCode, error) 
     a.streamHandle.RegisterObserver(a)
     a.info.From(a.streamHandle.ExtraInfo())
     fmt.Printf("AppsUploadResource.onStream - Stream#%d, Extra: %v.\n", s.StreamId(), a.info)
+    a.offset = 0
+    a.f5 = md5.New()
     return protocol.ErrCode_streamCreateAck, fmt.Errorf("ok")
 }
 
@@ -212,6 +217,7 @@ func (a *AppsUploadResource) onStream(s StreamHandle) (protocol.ErrCode, error) 
 func (a *AppsUploadResource) OnStreamSuccess(sid protocol.StreamId) {
     fmt.Println("AppsUploadResource.OnStreamSuccess - stream id ", sid)
     a.streamId = sid
+
 }
 
 // OnStreamError -
@@ -223,22 +229,34 @@ func (a *AppsUploadResource) OnStreamError(code int, message string) {
 func (a *AppsUploadResource) OnStreamData(buffer []byte, b protocol.Boolean) {
     // fmt.Printf("AppsUploadResource.OnStreamData - buffer %d, binary %v.\n", len(buffer), b)
     if b == protocol.BooleanTrue && a.mode == ModeAnswer {
-        // if a.f == nil {
-        //     if err := a.answerFile(); err != nil {
-        //         return
-        //     }
-        // }
-        // if n, err := a.f.Write(buffer); err != nil || n != len(buffer) {
-        //     if err != nil {
-        //         fmt.Printf("AppsUploadResource.OnStreamData - write to<%s> failed, error.%v.\n", a.f.Name(), err.Error())
-        //     } else {
-        //         fmt.Printf("AppsUploadResource.OnStreamData - write to<%s> failed not all writen.%d.\n", a.f.Name(), n)
-        //     }
-        //     return
-        // }
-        // a.f5.Write(buffer)
+        if a.f == nil {
+            if err := a.answerFile(); err != nil {
+                return
+            }
+        }
+        a.offset += len(buffer)
+        a.f5.Write(buffer)
+        if n, err := a.f.Write(buffer); err != nil || n != len(buffer) {
+            if err != nil {
+                fmt.Printf("AppsUploadResource.OnStreamData - write to<%s> failed, error.%v.\n", a.f.Name(), err.Error())
+            } else {
+                fmt.Printf("AppsUploadResource.OnStreamData - write to<%s> failed not all writen.%d.\n", a.f.Name(), n)
+            }
+            return
+        }
+
     } else {
         fmt.Printf("AppsUploadResource.OnStreamData - buffer %d, binary %v.\n", len(buffer), b)
+        if a.mode == ModeAnswer {
+            info := UploadFileInfo{}
+            info.From(buffer)
+            a.info.FileMd5 = fmt.Sprintf("%X", a.f5.Sum(nil))
+            fmt.Printf("AppsUploadResource.OnStreamData - %v(%s) => total length %d:%d.\n", a.info.FilePath, info.FileMd5, a.offset, info.FileSize)
+            fmt.Printf("AppsUploadResource.OnStreamData - %v(%s) =>%v.\n", a.SavePath(), a.info.FileMd5,  a.info.FileMd5 == info.FileMd5)
+        } else {
+            a.channelHandle.StreamClose(a.streamId, nil)
+        }
+
     }
 }
 
@@ -247,10 +265,5 @@ func (a *AppsUploadResource) OnStreamClosing(extra []byte) {
     if a.f == nil {
         return
     }
-    info := UploadFileInfo{}
-    info.From(extra)
-    a.info.FileMd5 = fmt.Sprintf("%X", a.f5.Sum(nil))
-    fmt.Printf("AppsUploadResource.OnStreamClosing - %v(%s) =>.\n", a.info.FilePath, info.FileMd5)
-    fmt.Printf("AppsUploadResource.OnStreamClosing - %v(%s) =>%v.\n", a.SavePath(), a.info.FileMd5,  a.info.FileMd5 == info.FileMd5)
     a.f.Close()
 }

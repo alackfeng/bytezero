@@ -343,8 +343,9 @@ func (app *AppsClient) wait() error {
                 bufferLen = int(i)
             }
             // filePath := "E:\\TestData\\视频\\nini.3gp"
-            filePath := "E:\\TestData\\视频\\IMG_2790.MOV"
-	    if runtime.GOOS == "linux" {
+            // filePath := "E:\\TestData\\视频\\IMG_2790.MOV"
+            filePath := "E:\\TestData\\Test_Video\\flv.flv"
+	        if runtime.GOOS == "linux" {
                 filePath = "/home/vagrant/keycloak-10.0.2.zip"
             }
             if len(options) > 3 {
@@ -367,6 +368,9 @@ func (app *AppsClient) wait() error {
                 sessionId = options[1]
             }
             savePath := "C:\\Users\\Administrator\\Desktop\\"
+            if runtime.GOOS == "linux" {
+                savePath = "/home/vagrant/bytezero-go/"
+            }
             if len(options) > 2 {
                 savePath = options[2]
             }

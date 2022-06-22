@@ -14,6 +14,7 @@ type AppsStream struct {
     Observer StreamObserver
     state protocol.StreamState
     extra []byte // extra info.
+    offset int
 }
 var _ StreamHandle = (*AppsStream)(nil)
 
@@ -131,6 +132,8 @@ func (a *AppsStream) OnAck(streamAckPt *protocol.StreamAckPt) error {
 // onData -
 func (a *AppsStream) onData(streamDataPt *protocol.StreamDataPt) error {
     if a.Observer != nil {
+        a.offset += int(streamDataPt.Length)
+        fmt.Println("-----------onData - ", streamDataPt, a.offset)
         a.Observer.OnStreamData(streamDataPt.Data, streamDataPt.Binary)
     }
     return nil

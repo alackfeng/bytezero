@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-// go build -o bin/bytezero.exe -v -gcflags '-N -l' main.go
+// go build -o bin/bytezero -v -gcflags '-N -l' main.go
 // export BZGO_PROF=1; ./bin/bytezero
 // export BZGO_PROF=1; GODEBUG=gctrace=1 ./bin/bytezero
 // go tool pprof ./bin/bytezero bzgo.cpuprof

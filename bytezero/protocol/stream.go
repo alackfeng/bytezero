@@ -324,7 +324,7 @@ func (c *StreamDataPt) Unmarshal(buf []byte) error {
     var i uint32 = 0
     c.Od = ChannelId(binary.BigEndian.Uint32(buf[i:])); i += 4
     c.Id = StreamId(binary.BigEndian.Uint32(buf[i:])); i += 4
-    c.Binary = Boolean(buf[i]); i += 1
+    c.Binary.From(buf[i]); i += 1
     c.Timestamp = binary.BigEndian.Uint64(buf[i:]); i += 8
     c.Total = binary.BigEndian.Uint32(buf[i:]); i += 4
     c.Offset = binary.BigEndian.Uint32(buf[i:]); i += 4

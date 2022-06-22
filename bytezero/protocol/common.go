@@ -17,18 +17,20 @@ const (
 )
 
 // To -
-func (b Boolean) To() bool {
-    return b == '1'
+func (b Boolean) To() byte {
+    if b == BooleanFalse {
+        return '0'
+    }
+    return '1'
 }
 
 // From -
-func (b Boolean) From(bl bool) Boolean {
-    if bl == true {
-        b = '1'
+func (b* Boolean) From(bl byte) {
+    if bl == 0 {
+        *b = BooleanFalse
     } else {
-        b = '0'
+        *b = BooleanTrue
     }
-    return b
 }
 
 // String -
