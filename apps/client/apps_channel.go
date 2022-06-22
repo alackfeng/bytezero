@@ -26,6 +26,7 @@ type AppsChannel struct {
     ack chan protocol.ErrCode
     state protocol.ChannelState
     durationMs int64
+    expiredCount int64
 
     nextSid protocol.StreamId
 
@@ -439,8 +440,11 @@ func (a *AppsChannel) onStreamData(commonPt *protocol.CommonPt) error {
 
     ms := utils.Abs(utils.NowDiff(int64(streamDataPt.Timestamp)).Milliseconds() - a.durationMs)
     if ms > 3000 {
-        fmt.Printf("AppsChannel.onStreamData - StreamDataPt %v, dura: %d(%d) ms, ts: %v, %v\n", streamDataPt, ms, a.durationMs,
+        if a.expiredCount % 100 == 0 {
+            fmt.Printf("AppsChannel.onStreamData - StreamDataPt %v, dura: %d(%d) ms, expired count: %d, ts: %v, %v\n", streamDataPt, ms, a.durationMs, a.expiredCount,
             utils.MsFormat(int64(streamDataPt.Timestamp)), utils.MsFormat(time.Now().UnixMilli()))
+        }
+        a.expiredCount++
     }
 
     a.l.Lock()

@@ -343,8 +343,8 @@ func (app *AppsClient) wait() error {
                 bufferLen = int(i)
             }
             // filePath := "E:\\TestData\\视频\\nini.3gp"
-            // filePath := "E:\\TestData\\视频\\IMG_2790.MOV"
-            filePath := "E:\\TestData\\Test_Video\\flv.flv"
+            filePath := "E:\\TestData\\视频\\IMG_2790.MOV"
+            // filePath := "E:\\TestData\\Test_Video\\flv.flv"
 	        if runtime.GOOS == "linux" {
                 filePath = "/home/vagrant/keycloak-10.0.2.zip"
             }

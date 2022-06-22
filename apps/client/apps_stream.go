@@ -7,6 +7,9 @@ import (
 	"github.com/alackfeng/bytezero/cores/utils"
 )
 
+// recvDataLenghtDefault -
+const recvDataLenghtDefault = 10240
+
 // AppsStream -
 type AppsStream struct {
     Id protocol.StreamId
@@ -14,18 +17,25 @@ type AppsStream struct {
     Observer StreamObserver
     state protocol.StreamState
     extra []byte // extra info.
-    offset int
+    dataSync bool
+    data chan *protocol.StreamDataPt
 }
 var _ StreamHandle = (*AppsStream)(nil)
 
 // NewAppsStream -
 func NewAppsStream(sid protocol.StreamId, sender ChannelSender , observer StreamObserver, extra []byte) *AppsStream {
-    return &AppsStream{
+
+    as := &AppsStream{
         Id: sid,
         Sender: sender,
         Observer: observer,
         extra: extra,
+        dataSync: false,
     }
+    if !as.dataSync {
+        as.data = make(chan *protocol.StreamDataPt, recvDataLenghtDefault)
+    }
+    return as
 }
 
 // Create -
@@ -47,6 +57,9 @@ func (a *AppsStream) Create() error {
     }
     logc.Debugf("AppsStream.Create - Send to %v, buffer %v.", a.Sender, streamCreatePt)
     if a.Sender != nil {
+        if !a.dataSync {
+            go a.handleRecvData()
+        }
         return a.Sender.Send(mByte)
     }
     logc.Errorf("AppsStream.Create - Stream Sender is null.")
@@ -112,6 +125,9 @@ func (a *AppsStream) Ack(code protocol.ErrCode, message string) error {
         logc.Errorf("AppsStream.Create - StreamAckPt Marshal error.%v", err.Error())
         return err
     }
+    if !a.dataSync {
+        go a.handleRecvData()
+    }
     return a.Sender.Send(mByte)
 }
 
@@ -129,12 +145,48 @@ func (a *AppsStream) OnAck(streamAckPt *protocol.StreamAckPt) error {
     return nil
 }
 
+
+// handleRecvData -
+func (a *AppsStream) handleRecvData() {
+    fmt.Println("-----------------AppsStream handleRecvData queue ", len(a.data))
+    for {
+        select {
+        case streamDataPt, ok := <- a.data:
+            if !ok {
+                return
+            }
+
+
+            if a.Observer != nil {
+                a.Observer.OnStreamData(streamDataPt.Data, streamDataPt.Binary)
+            }
+
+            l := len(a.data)
+            if l > 100 {
+                fmt.Println("-----------------current data queue ", l)
+                for i := 0; i < l; i++ {
+                    streamDataPt, ok := <-a.data
+                    if !ok {
+                        return
+                    }
+                    if a.Observer != nil {
+                        a.Observer.OnStreamData(streamDataPt.Data, streamDataPt.Binary)
+                    }
+                }
+            }
+
+        }
+    }
+}
+
 // onData -
 func (a *AppsStream) onData(streamDataPt *protocol.StreamDataPt) error {
     if a.Observer != nil {
-        a.offset += int(streamDataPt.Length)
-        fmt.Println("-----------onData - ", streamDataPt, a.offset)
-        a.Observer.OnStreamData(streamDataPt.Data, streamDataPt.Binary)
+        if !a.dataSync {
+            a.data <- streamDataPt
+        } else {
+            a.Observer.OnStreamData(streamDataPt.Data, streamDataPt.Binary)
+        }
     }
     return nil
 }

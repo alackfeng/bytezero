@@ -116,7 +116,6 @@ func (c *StreamCreatePt) Unmarshal(buf []byte) error {
     c.Timestamp = binary.BigEndian.Uint64(buf[i:]); i += 8
     if c.Ver.Match(StreamVerExtra) {
         l := binary.BigEndian.Uint32(buf[i:]); i += 4
-        fmt.Println("StreamCreatePt::Unmarshal - extra, length", l)
         c.Extra = buf[i:i+l]
     }
     return nil
@@ -329,7 +328,10 @@ func (c *StreamDataPt) Unmarshal(buf []byte) error {
     c.Total = binary.BigEndian.Uint32(buf[i:]); i += 4
     c.Offset = binary.BigEndian.Uint32(buf[i:]); i += 4
     c.Length = binary.BigEndian.Uint32(buf[i:]); i += 4
-    c.Data = buf[i:i+c.Length]; // i += c.Length
+    if c.Data == nil {
+        c.Data = make([]byte, c.Length)
+    }
+    ByteCopy(c.Data, 0, buf[i:i+c.Length], 0)
     return nil
 }
 
