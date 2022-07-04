@@ -189,13 +189,17 @@ func (c *Connection) handleRecevier() error {
         // if err := protocol.Unmarshal(buffer[0:len], out); err != nil {
         if err := protocol.Unmarshal(c.BufferRead.Get(), out); err != nil {
                 // if err := protocol.Unmarshal(buffer[currOffset:readOffset], out); err != nil {
-            if err == protocol.ErrNoFixedMe {
+            if err == protocol.ErrNoFixedMe || err == protocol.ErrNoMethodType {
                 logbz.Errorln("Connection handleRecevier - Unmarshal error.", err.Error())
                 return err
             }
             // logbz.Errorln("Connection handleRecevier - Unmarshal ------- error.", err.Error())
             c.BufferRead.Step()
             continue
+        }
+        if out.Ver < protocol.CurrentVersion { // no support Version.
+            logbz.Errorln("Connection handleRecevier - no support version.", out.Ver)
+            return protocol.ErrNoSupportVersion
         }
         c.BufferRead.Next(out.Len())
 

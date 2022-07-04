@@ -2,6 +2,7 @@ package utils
 
 import (
 	"crypto/hmac"
+	"crypto/md5"
 	"crypto/sha1"
 	"encoding/base64"
 	"errors"
@@ -30,7 +31,7 @@ func (c *Credential) Username() string {
     return fmt.Sprintf("%d:%s", c.ExpireS, c.Name)
 }
 
-// Sign -
+// Sign - sha1-hmac.
 func (c *Credential) Sign(pass string) (s string) {
     mac := hmac.New(sha1.New, []byte(pass))
     mac.Write([]byte(c.Username()))
@@ -44,8 +45,8 @@ var ErrCredentialSignNotMatch = errors.New("Credential Sign Not Match")
 var ErrCredentialExpired = errors.New("User %s Sign<%s> expired now.")
 
 // CredentialVerify -
-func CredentialVerify(s string, pass string) error {
-    ss := StringToSlice(s, ":")
+func CredentialVerify(user string, sign string, pass string, get_fileds_sign func(string)[]byte) error {
+    ss := StringToSlice(user, ":")
     if len(ss) != 3 {
         return ErrCredentialParamNotEngouth
     }
@@ -57,9 +58,17 @@ func CredentialVerify(s string, pass string) error {
         return ErrCredentialUsernameNULL
     }
     if cred.ExpireS < NowMs() / 1000 {
-        return fmt.Errorf(ErrCredentialExpired.Error(), cred.Name, s)
+        return fmt.Errorf(ErrCredentialExpired.Error(), cred.Name, user)
     }
-    if cred.Sign(pass) != ss[2] {
+    secretType := ss[2]
+    secretKey := cred.Sign(pass)
+
+    hs := md5.New()
+    hs.Write([]byte(user))
+    hs.Write(get_fileds_sign(secretType))
+    hs.Write([]byte(secretKey))
+    m5 := fmt.Sprintf("%X", hs.Sum(nil)[4:12])
+    if m5 != sign {
         return ErrCredentialSignNotMatch
     }
     return nil

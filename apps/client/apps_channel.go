@@ -217,7 +217,7 @@ func (a *AppsChannel) handleRecevier() {
         commonPt := &protocol.CommonPt{}
         if err := protocol.Unmarshal(a.BufferRead.Get(), commonPt); err != nil {
             // fmt.Printf("AppsChannel::handleRecevicer - Unmarshal Buffer error.%v.\n", err.Error())
-            if err == protocol.ErrNoFixedMe {
+            if err == protocol.ErrNoFixedMe || err == protocol.ErrNoMethodType {
                 logc.Errorln("AppsChannel::handleRecevier - Unmarshal error.", err.Error())
                 break
             }
@@ -274,6 +274,7 @@ func (a *AppsChannel) channelCreate(sessionId string) (err error) {
     }
     a.sessionId = sessionId
     channelCreatePt := &protocol.ChannelCreatePt {
+        OS: protocol.GOOSType(),
         AppId: []byte(a.app.AppId()),
         DeviceId: []byte(a.app.DeviceId()),
         SessionId: []byte(sessionId),

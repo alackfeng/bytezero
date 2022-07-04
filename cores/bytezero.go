@@ -19,6 +19,7 @@ var logbz = utils.Logger(utils.Fields{"animal": "main"})
 type BytezeroNet struct {
     done chan bool
     ctx    context.Context
+    appIds map[utils.OSType]string
 
     // server.
     ts* server.TcpServer
@@ -41,6 +42,9 @@ func NewBytezeroNet(ctx context.Context, done chan bool) *BytezeroNet {
         ctx: ctx,
         connections: make(map[string]*Connection),
         channels: make(map[string]*Channel),
+    }
+    bzn.appIds = map[utils.OSType]string{
+        utils.OSTypeWindows: "xxx",
     }
     return bzn
 }
@@ -125,15 +129,22 @@ func (bzn *BytezeroNet) HandleConn(tcpConn *net.TCPConn) error {
 func (bzn *BytezeroNet) HandlePt(conn bz.BZNetReceiver, commonPt *protocol.CommonPt) error {
     switch commonPt.Type {
     case protocol.Method_CHANNEL_CREATE:
-        channelCreatePb := protocol.NewChannelCreatePb()
+        channelCreatePb := &protocol.ChannelCreatePt{}
         if err := commonPt.UnmarshalP(channelCreatePb); err != nil {
             return fmt.Errorf("ChannelCreatePb Unmarshal error.%v", err.Error())
         }
         fmt.Println("BytezeroNet.HandlePt - ", channelCreatePb)
-        if err := utils.CredentialVerify(string(channelCreatePb.Sign), bzn.AppKey()); err != nil {
+        if !utils.CheckAppID(utils.OSType(channelCreatePb.OS), string(channelCreatePb.AppId)) {
+            logbz.Errorln("BytezeroNet.HandlePt - CheckAppID error.", channelCreatePb)
+            return fmt.Errorf("OS not match AppID")
+        }
+        if err := utils.CredentialVerify(string(channelCreatePb.User), string(channelCreatePb.Sign), bzn.AppKey(), func(s string) ([]byte) {
+            return channelCreatePb.FieldsSign()
+        }); err != nil {
             logbz.Errorf("BytezeroNet.HandlePt - connection sign error.%s", err.Error())
             return err
         }
+
         if c, ok := conn.(*Connection); ok {
             bzn.l.Lock()
             // Update DevcieId etc.

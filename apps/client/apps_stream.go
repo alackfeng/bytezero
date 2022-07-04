@@ -47,7 +47,7 @@ func (a *AppsStream) Create() error {
         Timestamp: uint64(utils.NowMs()),
     }
     if len(a.extra) != 0 {
-        streamCreatePt.Ver = protocol.StreamVerExtra
+        streamCreatePt.Ver = protocol.BridgeVerExtra
         streamCreatePt.Extra = a.extra
     }
     mByte, err := protocol.Marshal(streamCreatePt)
@@ -74,7 +74,7 @@ func (a *AppsStream) Close() error {
         Id: a.Id,
     }
     if len(a.extra) != 0 {
-        streamClosePt.Ver = protocol.StreamVerExtra
+        streamClosePt.Ver = protocol.BridgeVerExtra
         streamClosePt.Extra = a.extra
     }
     mByte, err := protocol.Marshal(streamClosePt)

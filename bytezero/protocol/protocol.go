@@ -7,8 +7,13 @@ import (
 // ChannelId -
 type ChannelId uint32
 
+// String -
+func (s ChannelId) String() string {
+    return fmt.Sprintf("Channel#%d", s)
+}
+
 var gloablChannelId ChannelId = 0
-// Next -
+// GenChannelId -
 func GenChannelId() ChannelId  {
     gloablChannelId++
     return gloablChannelId
@@ -28,6 +33,7 @@ const (
     Method_STREAM_CLOSE
     Method_STREAM_REFRESH
     Method_STREAM_ERROR
+    Method_MAX
 )
 
 // Method String -
@@ -45,6 +51,48 @@ func (x Method) String() string {
     }
     return "NONE"
 }
+
+
+// Serializable -
+type Serializable interface {
+    Len() int
+    Pack(buf []byte, i int) int
+    UnPack(buf []byte, i int) int
+}
+
+// BridgeVer -
+type BridgeVer uint8
+const (
+    BridgeVerNone               BridgeVer = 0x0
+    BridgeVerExtra              BridgeVer = 0x1 << 0
+    BridgeVerReserved           BridgeVer = 0x1 << 7
+    BridgeVerAll                BridgeVer = BridgeVerExtra | BridgeVerReserved
+)
+
+var _ Serializable = (*BridgeVer)(nil)
+
+// Match -
+func (s BridgeVer) Match(v BridgeVer) bool {
+    return s & v == v
+}
+
+// Len -
+func (c *BridgeVer) Len() int {
+    return 1
+}
+
+// Pack -
+func (c *BridgeVer) Pack(buf []byte, i int) int {
+    buf[i] = byte(*c)
+    return 1
+}
+
+// UnPack -
+func (c *BridgeVer) UnPack(buf []byte, i int) int {
+    *c = BridgeVer(buf[i])
+    return 1
+}
+
 
 // Unmarshal -
 func Unmarshal(buf []byte, out interface{}) error {
