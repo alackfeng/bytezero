@@ -44,6 +44,10 @@ func NewConnection(bzn bz.BZNet, c *net.TCPConn) *Connection {
     if !cc.dataSync {
         cc.data = make(chan []byte, transDataLenghtDefault)
     }
+    // MARGIC_SHIFT for transport secret.
+    if cc.BufferRead.Secret {
+        cc.BufferRead.Margic = bzn.MargicV()
+    }
     return cc
 }
 
@@ -111,6 +115,13 @@ func (c *Connection) Transit(buf []byte) error {
 
 // Send -
 func (c *Connection) Send(buf []byte) error {
+    // MARGIC_SHIFT for transport secret.
+    if c.BufferRead.Secret {
+        for i:=0; i<len(buf); i++ {
+            buf[i] ^= c.BufferRead.Margic
+        }
+    }
+
     n, err := c.Write(buf)
     if err != nil {
         return err

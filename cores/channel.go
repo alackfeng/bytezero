@@ -75,12 +75,16 @@ func (c *Channel) Ack(code protocol.ErrCode, message string) error {
         logbz.Errorf("Channel.Ack - error.%v.", err.Error())
         return err
     }
+    mByte2 := make([]byte, len(mByte))
+    copy(mByte2, mByte)
+
     fmt.Printf("Channel.Ack - send ack %v, to %v, %v.\n", channelAckPt, c.lc.Id(), c.lc.Id())
     if err := c.lc.Send(mByte); err != nil {
         logbz.Errorf("Channel.Ack - Send To %v, error.%v.", c.lc.Id(), err.Error())
         return err
     }
-    if err := c.rt.Send(mByte); err != nil {
+
+    if err := c.rt.Send(mByte2); err != nil {
         logbz.Errorf("Channel.Ack - Send To %v, error.%v.", c.rt.Id(), err.Error())
         return err
     }

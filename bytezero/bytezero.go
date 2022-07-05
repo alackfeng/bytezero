@@ -21,6 +21,7 @@ type BZNet interface {
     AppID() string
     AppKey() string
     CredentialExpiredMs() int64
+    MargicV() byte // MARGIC_SHIFT for transport secret.
 }
 
 

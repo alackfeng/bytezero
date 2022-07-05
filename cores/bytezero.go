@@ -15,6 +15,9 @@ import (
 
 var logbz = utils.Logger(utils.Fields{"animal": "main"})
 
+// MARGIC_SHIFT for transport secret.
+const MargicValue = 0xA8
+
 // BytezeroNet - BytezeroNet
 type BytezeroNet struct {
     done chan bool
@@ -63,6 +66,12 @@ func (bzn *BytezeroNet) AppKey() string {
 func (bzn *BytezeroNet) CredentialExpiredMs() int64 {
     return ConfigGlobal().App.Credential.ExpiredMs
 }
+
+// MargicV - MARGIC_SHIFT for transport secret.
+func (bzn *BytezeroNet) MargicV() byte {
+    return byte(MargicValue)
+}
+
 // Main -
 func (bzn *BytezeroNet) Main() {
     logbz.Debugln("BytezeroNet Main...")

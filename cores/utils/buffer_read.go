@@ -10,6 +10,8 @@ type BufferRead struct {
     remainLen int
     needRead bool
     maxBufferLen int
+    Margic byte
+    Secret bool
 }
 
 // NewBufferRead -
@@ -18,6 +20,7 @@ func NewBufferRead(l int) *BufferRead {
         maxBufferLen: l,
         buffer: make([]byte, l),
         needRead: true,
+        Secret: true,
     }
 }
 
@@ -53,6 +56,14 @@ func (b *BufferRead) Read(readFunc func([]byte) (int, error)) (int, error) {
             fmt.Printf("BufferRead::read - currOffset %d, readOffset %d, remainLen %d, curr read len %d, error----------------.\n", b.currOffset, b.readOffset, b.remainLen, l)
             return b.remainLen, err
         }
+
+        // MARGIC_SHIFT for transport secret.
+        if b.Secret {
+            for i:=b.readOffset; i < b.readOffset+l; i++ {
+                b.buffer[i] ^= b.Margic
+            }
+        }
+
         b.readOffset += l
         b.remainLen = b.readOffset - b.currOffset
         if b.readOffset > b.maxBufferLen - b.maxBufferLen / 10 {
