@@ -27,6 +27,7 @@ type BytezeroNet struct {
     // server.
     ts* server.TcpServer
     us* server.UdpServer
+    tl* server.TlsServer
 
     // web api.
     gw *web.GinWeb
@@ -77,6 +78,7 @@ func (bzn *BytezeroNet) Main() {
     logbz.Debugln("BytezeroNet Main...")
     go bzn.StartTcp()
     go bzn.StartWeb()
+    go bzn.StartTls()
 }
 
 // Quit -
@@ -88,6 +90,9 @@ func (bzn *BytezeroNet) Quit() bool {
 // StartWeb -
 func (bzn *BytezeroNet) StartWeb() {
     config := ConfigGlobal()
+    if !config.App.Web.UP {
+        return
+    }
     if config.App.Web.Host == "" {
         return
     }
@@ -99,6 +104,9 @@ func (bzn *BytezeroNet) StartWeb() {
 // StartTcp -
 func (bzn *BytezeroNet) StartTcp() {
     config := ConfigGlobal()
+    if !config.App.Server.UP {
+        return
+    }
     tcpServer := server.NewTcpServer(bzn, config.App.Server.Address(), config.App.MaxBufferLen, config.App.RWBufferLen)
     err := tcpServer.Listen()
     if err != nil {
@@ -107,6 +115,22 @@ func (bzn *BytezeroNet) StartTcp() {
     }
     bzn.ts = tcpServer
 }
+
+// StartTls -
+func (bzn *BytezeroNet) StartTls() {
+    config := ConfigGlobal()
+    if !config.App.Tls.UP {
+        return
+    }
+    tlsServer := server.NewTlsServer(bzn, config.App.Tls.Address(), config.App.Tls.CaCert, config.App.Tls.CaKey)
+    err := tlsServer.Listen()
+    if err != nil {
+        logbz.Errorln("BytezeroNet.StartTls.Listen error.%v.", err.Error())
+        bzn.done <- true
+    }
+    bzn.tl = tlsServer
+}
+
 
 // HandleConnClose -
 func (bzn *BytezeroNet) HandleConnClose(connection interface{}) {
@@ -124,12 +148,12 @@ func (bzn *BytezeroNet) HandleConnClose(connection interface{}) {
 }
 
 // HandleConn -
-func (bzn *BytezeroNet) HandleConn(tcpConn *net.TCPConn) error {
+func (bzn *BytezeroNet) HandleConn(conn net.Conn) error {
     bzn.l.Lock()
-    conn := NewConnection(bzn, tcpConn).Main()
-    bzn.connections[conn.Id()] = conn
+    c := NewConnection(bzn, conn).Main()
+    bzn.connections[c.Id()] = c
     bzn.l.Unlock()
-    logbz.Infof("BytezeroNet HandleConn - create connection id:<%s>.", conn.Id())
+    logbz.Infof("BytezeroNet HandleConn - create connection id:<%s>.", c.Id())
     return nil
 }
 

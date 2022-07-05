@@ -13,7 +13,7 @@ type BZNetReceiver interface {
 
 // BZNet -
 type BZNet interface {
-    HandleConn(*net.TCPConn) error
+    HandleConn(net.Conn) error
     HandleConnClose(connection interface{})
     HandlePt(BZNetReceiver, *protocol.CommonPt) error
 

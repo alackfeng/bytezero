@@ -3,17 +3,17 @@ app:
   version: "v1.0.0"
   server:
     up: true
-    ip: 192.168.90.116
+    ip: 192.168.90.162
     port: 7788
   tls:
     up: true
-    ip: 192.168.90.116
+    ip: 192.168.90.162
     port: 7789
     cacert: "./scripts/certs/server/server.crt"
     cakey: "./scripts/certs/server/server.key"
   web:
     up: true
-    host: 192.168.90.116:7790
+    host: 192.168.90.162:7790
     heart: 3000
   maxBufferLen: 10485760
   rwBufferLen: 10485760

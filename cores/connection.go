@@ -16,7 +16,7 @@ const transDataLenghtDefault = 10240
 // Connection -
 type Connection struct {
     utils.BufferRead
-    *net.TCPConn
+    net.Conn
     bzn bz.BZNet
     maxBufferLen int
     quit bool
@@ -33,9 +33,9 @@ type Connection struct {
 var _ bz.BZNetReceiver = (*Connection)(nil)
 
 // NewConnection -
-func NewConnection(bzn bz.BZNet, c *net.TCPConn) *Connection {
+func NewConnection(bzn bz.BZNet, c net.Conn) *Connection {
     cc := &Connection {
-        TCPConn: c,
+        Conn: c,
         bzn: bzn,
         maxBufferLen: defaultMaxBufferLen*10,
         BufferRead: *utils.NewBufferRead(defaultMaxBufferLen*10),
@@ -179,7 +179,7 @@ func (c *Connection) handleRecevier() error {
         //     }
         // }
         if _, err := c.BufferRead.Read(func(b []byte) (int, error) {
-            return c.TCPConn.Read(b)
+            return c.Conn.Read(b)
         }); err != nil {
             logbz.Errorf("Connection handleRecevier - read error.", err.Error())
             return err

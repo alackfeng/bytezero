@@ -20,6 +20,7 @@ var APPVersion = "v1.0.0"
 
 // AppServerConfigure -
 type AppServerConfigure struct {
+    UP bool `yaml:"up" json:"up" binding:"required"`
     IP string `yaml:"ip" json:"ip" binding:"required"`
     Port int `yaml:"port" json:"port" binding:"required"`
 }
@@ -32,8 +33,26 @@ func (c *AppServerConfigure) Address() string {
     return fmt.Sprintf("%s:%d", c.IP, c.Port)
 }
 
+// AppTlsConfigure -
+type AppTlsConfigure struct {
+    UP bool `yaml:"up" json:"up" binding:"required"`
+    IP string `yaml:"ip" json:"ip" binding:"required"`
+    Port int `yaml:"port" json:"port" binding:"required"`
+    CaCert string `yaml:"cacert" json:"cacert" binding:"required"`
+    CaKey string `yaml:"cakey" json:"cakey" binding:"required"`
+}
+
+// Address -
+func (c *AppTlsConfigure) Address() string {
+    if c.IP == "" {
+        return fmt.Sprintf(":%d", c.Port)
+    }
+    return fmt.Sprintf("%s:%d", c.IP, c.Port)
+}
+
 // AppWebConfigure -
 type AppWebConfigure struct {
+    UP bool `yaml:"up" json:"up" binding:"required"`
     Host string `yaml:"host" json:"host" binding:"required"`
     Heart int32 `yaml:"heart" json:"heart" binding:"required"`
 }
@@ -48,6 +67,7 @@ type AppConfigure struct {
     Name string  `yaml:"name" json:"name" binding:"required"`
     Version string `yaml:"version" json:"version" binding:"required"`
     Server AppServerConfigure `yaml:"server" json:"server" binding:"required"`
+    Tls AppTlsConfigure `yaml:"tls" json:"tls" binding:"required"`
     Web AppWebConfigure `yaml:"web" json:"web" binding:"required"`
     MaxBufferLen int `yaml:"maxBufferLen" json:"maxBufferLen" binding:"required"`
     RWBufferLen int `yaml:"rwBufferLen" json:"rwBufferLen" binding:"required"`
@@ -106,6 +126,20 @@ func ConfigSetServer(maxBufferLen, rwBufferLen, port int, host, appid, appkey st
     if host != "" {
         GlobalConfig.App.Web.Host = host
     }
+}
+
+// ConfigSetTls -
+func ConfigSetTls(needTls bool, tlsPort int, caCert string, caKey string) {
+    if GlobalConfig.App.Name != "" {
+        return
+    }
+    if !needTls {
+        return
+    }
+    GlobalConfig.App.Tls.UP = needTls
+    GlobalConfig.App.Tls.Port = tlsPort
+    GlobalConfig.App.Tls.CaCert = caCert
+    GlobalConfig.App.Tls.CaKey = caKey
 }
 
 // ConfigureParse

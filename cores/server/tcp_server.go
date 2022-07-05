@@ -43,7 +43,7 @@ func (t *TcpServer) Listen() error {
     if err != nil {
         return err
     }
-    logsv.Debugln("TcpServer Listen begin.", tcpAddr.String())
+    logsv.Debugln("====>TcpServer Listen TCP:", tcpAddr.String())
 
     for {
         tcpConn, err := tcpListener.AcceptTCP()

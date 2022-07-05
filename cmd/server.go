@@ -55,6 +55,10 @@ to quickly create a Cobra application.`,
         host, _ := cmd.Flags().GetString("host")
         appid, _ := cmd.Flags().GetString("appid")
         appkey, _ := cmd.Flags().GetString("appkey")
+        needTls, _ := cmd.Flags().GetBool("tls")
+        tlsPort, _ := cmd.Flags().GetInt("tlsport")
+        caCert, _ := cmd.Flags().GetString("cacert")
+        caKey, _ := cmd.Flags().GetString("cakey")
 
         done := make(chan bool)
 		sigs := make(chan os.Signal, 1)
@@ -67,6 +71,7 @@ to quickly create a Cobra application.`,
 		}()
         bzn := bze.NewBytezeroNet(ctx, done)
         bze.ConfigSetServer(maxBufferLen, rwBufferLen, port, host, appid, appkey)
+        bze.ConfigSetTls(needTls, tlsPort, caCert, caKey)
         bzn.Main()
 
         logcmd.Errorln("main listen...")
@@ -105,6 +110,9 @@ func init() {
 	serverCmd.Flags().IntP("port", "p", 7788, "tcp or udp server listen port")
 	serverCmd.Flags().StringP("host", "s", "192.168.90.162:7790", "web rest api host url")
     serverCmd.Flags().StringP("appid", "i", "bytezero-appid", "bytezero appid")
-	serverCmd.Flags().StringP("appkey", "k", "secret", "appkey secret")
-
+	serverCmd.Flags().StringP("appkey", "a", "secret", "appkey secret")
+    serverCmd.Flags().BoolP("tls", "t", true, "tls server listen")
+    serverCmd.Flags().IntP("tlsport", "r", 7789, "tls server listen port")
+    serverCmd.Flags().StringP("cacert", "e", "./scripts/certs/server/server.crt", "tls server ca cert: ./scripts/certs/server/server.crt")
+    serverCmd.Flags().StringP("cakey", "k", "./scripts/certs/server/server.key", "tls server ca key: ./scripts/certs/server/server.key")
 }
