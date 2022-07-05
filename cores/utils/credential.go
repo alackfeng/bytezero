@@ -63,14 +63,20 @@ func CredentialVerify(user string, sign string, pass string, get_fileds_sign fun
     secretType := ss[2]
     secretKey := cred.Sign(pass)
 
-    hs := md5.New()
-    hs.Write([]byte(user))
-    hs.Write(get_fileds_sign(secretType))
-    hs.Write([]byte(secretKey))
-    m5 := fmt.Sprintf("%X", hs.Sum(nil)[4:12])
+    m5 := Md5Sign([]byte(user), get_fileds_sign(secretType), []byte(secretKey))
     if m5 != sign {
         return ErrCredentialSignNotMatch
     }
     return nil
+}
+
+// Md5Sign -
+func Md5Sign(user []byte, fields []byte, pass []byte) string {
+    hs := md5.New()
+    hs.Write(user)
+    hs.Write(fields)
+    hs.Write(pass)
+    m5 := fmt.Sprintf("%X", hs.Sum(nil)[4:12])
+    return m5
 }
 

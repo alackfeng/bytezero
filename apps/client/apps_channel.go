@@ -1,6 +1,7 @@
 package client
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net"
 	"sync"
@@ -19,7 +20,7 @@ const waitTimeoutForAck = 30000 // ms.
 type AppsChannel struct {
     utils.BufferRead
     app Client
-    *net.TCPConn
+    net.Conn
     address string
     sessionId string
     cid protocol.ChannelId
@@ -45,7 +46,7 @@ var _ ChannelSender = (*AppsChannel)(nil)
 
 // NewAppsChannel -
 func NewAppsChannel(app Client) *AppsChannel {
-    return &AppsChannel{
+    a := &AppsChannel{
         app: app,
         BufferRead: *utils.NewBufferRead(app.MaxRecvBufferLen()),
         ack: make(chan protocol.ErrCode),
@@ -53,6 +54,9 @@ func NewAppsChannel(app Client) *AppsChannel {
         m: make(map[protocol.StreamId]*AppsStream),
         w: make(map[protocol.StreamId]chan protocol.ErrCode),
     }
+    // MARGIC_SHIFT for transport secret.
+    a.BufferRead.Margic, a.BufferRead.Secret = a.app.MargicV()
+    return a
 }
 
 // RegisterObserver -
@@ -82,6 +86,12 @@ func (a *AppsChannel) String() string {
 
 // Send -
 func (a *AppsChannel) Send(buf []byte) error {
+    // MARGIC_SHIFT for transport secret.
+    if a.BufferRead.Secret {
+        for i:=0; i<len(buf); i++ {
+            buf[i] ^= a.BufferRead.Margic
+        }
+    }
     n, err := a.Write(buf)
     if err != nil {
         return err
@@ -127,16 +137,28 @@ func (a *AppsChannel) State() protocol.ChannelState {
 
 // dial -
 func (a *AppsChannel) dial() error {
-    tcpAddr, err := net.ResolveTCPAddr(networkTcp, a.address)
-    if err != nil {
-        return err
+    if a.app.Tls() {
+        config := &tls.Config{
+            InsecureSkipVerify: true,
+        }
+        conn, err := tls.Dial(networkTcp, a.address, config)
+        if err != nil {
+            return err
+        }
+        a.Conn = conn
+    } else {
+        tcpAddr, err := net.ResolveTCPAddr(networkTcp, a.address)
+        if err != nil {
+            return err
+        }
+        tcpConn, err := net.DialTCP(networkTcp, nil, tcpAddr)
+        if err != nil {
+            return err
+        }
+        a.Conn = tcpConn
     }
-    tcpConn, err := net.DialTCP(networkTcp, nil, tcpAddr)
-    if err != nil {
-        return err
-    }
+
     a.stateChanged(protocol.ChannelStateConnecting)
-    a.TCPConn = tcpConn
     return nil
 }
 
@@ -203,7 +225,7 @@ func (a *AppsChannel) handleRecevier() {
         // }
 
         if _, err := a.BufferRead.Read(func(b []byte) (int, error) {
-            return a.TCPConn.Read(b)
+            return a.Conn.Read(b)
         }); err != nil {
             logc.Errorf("AppsChannel::handleRecevier - read error.", err.Error())
             break
@@ -278,8 +300,10 @@ func (a *AppsChannel) channelCreate(sessionId string) (err error) {
         AppId: []byte(a.app.AppId()),
         DeviceId: []byte(a.app.DeviceId()),
         SessionId: []byte(sessionId),
-        Sign: []byte(result.User + ":" + result.Pass),
+        User: []byte(result.User),
     }
+    channelCreatePt.User = append(channelCreatePt.User, ":1"...)
+    channelCreatePt.Sign = []byte(utils.Md5Sign(channelCreatePt.User, channelCreatePt.FieldsSign(), []byte(result.Pass)))
     mByte, err := protocol.Marshal(channelCreatePt)
     if err != nil {
         return err
@@ -294,7 +318,7 @@ func (a *AppsChannel) channelClose() (err error) {
     if a.state == protocol.ChannelStateClosed {
         return nil
     }
-    return a.TCPConn.Close()
+    return a.Conn.Close()
 }
 
 // onChannelAck - code, message, chanId.

@@ -6,6 +6,9 @@ import (
 	"github.com/alackfeng/bytezero/bytezero/protocol"
 )
 
+// MARGIC_SHIFT for transport secret.
+const MargicValue = 0xA8
+
 // BZNetReceiver -
 type BZNetReceiver interface {
     ChannId() string
@@ -21,7 +24,7 @@ type BZNet interface {
     AppID() string
     AppKey() string
     CredentialExpiredMs() int64
-    MargicV() byte // MARGIC_SHIFT for transport secret.
+    MargicV() (byte, bool) // MARGIC_SHIFT for transport secret.
 }
 
 

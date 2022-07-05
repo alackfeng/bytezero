@@ -35,11 +35,15 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("client called")
         tcpAddress, _ := cmd.Flags().GetString("tcp-address")
+        margic, _ := cmd.Flags().GetBool("margic")
         udpAddress, _ := cmd.Flags().GetString("udp-address")
         maxBufferLen, _ := cmd.Flags().GetInt("max-buffer-len")
         sendPeroidMs, _ := cmd.Flags().GetInt("send-peroid-ms")
         recvCheck, _ := cmd.Flags().GetBool("recv-check")
         deviceId, _ := cmd.Flags().GetString("device-id")
+        apiAddress, _ := cmd.Flags().GetString("api-address")
+        isTls, _ := cmd.Flags().GetBool("tls")
+
 
         // if err := checkMust(deviceId, tcpAddress, sessionId); err != nil {
         //     fmt.Println(err.Error())
@@ -47,7 +51,7 @@ to quickly create a Cobra application.`,
         // }
 
         appsClient := client.NewAppsClient()
-        appsClient.SetTcpAddress(tcpAddress).SetUdpAddress(udpAddress)
+        appsClient.SetTcpAddress(tcpAddress, margic).SetUdpAddress(udpAddress).SetTls(isTls).SetApiAddress(apiAddress)
         appsClient.SetDeviceId(deviceId)
         appsClient.SetMaxBufferLen(maxBufferLen).SetSendPeroid(sendPeroidMs).SetRecvCheck(recvCheck).Main()
 	},
@@ -70,8 +74,11 @@ func checkMust(deviceId, tcpAddress, sessionId string) error {
 func init() {
 	rootCmd.AddCommand(clientCmd)
 
-	clientCmd.Flags().StringP("tcp-address", "t", "", "TCP Address 127.0.0.1:7788")
+	clientCmd.Flags().StringP("tcp-address", "t", "192.168.90.162:7788", "TCP Address 127.0.0.1:7788")
+    clientCmd.Flags().BoolP("margic", "m", true, "margic for tcp listen secret")
 	clientCmd.Flags().StringP("udp-address", "u", "", "UDP Address 127.0.0.1:7789")
+	clientCmd.Flags().StringP("api-address", "a", "http://192.168.90.162:7790", "Web Api Address http://127.0.0.1:7790")
+	clientCmd.Flags().BoolP("tls", "s", false, "tls for tcp.")
 	clientCmd.Flags().IntP("max-buffer-len", "l", 1024*10, "Max Buffer Length")
 	clientCmd.Flags().IntP("send-peroid-ms", "p", 1, "Send Peroid Ms.")
 	clientCmd.Flags().BoolP("recv-check", "c", false, "Recv Check, false is mean to close connection.")

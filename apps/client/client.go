@@ -17,6 +17,8 @@ type Client interface {
     DeviceId() string
     TargetAddress() string
     Api(uri string) string
+    Tls() bool
+    MargicV() (byte, bool) // MARGIC_SHIFT for transport secret.
 }
 
 // ChannelSender -

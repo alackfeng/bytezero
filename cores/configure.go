@@ -23,6 +23,7 @@ type AppServerConfigure struct {
     UP bool `yaml:"up" json:"up" binding:"required"`
     IP string `yaml:"ip" json:"ip" binding:"required"`
     Port int `yaml:"port" json:"port" binding:"required"`
+    Margic bool `yaml:"margic" json:"margic" binding:"required"`
 }
 
 // Address -
@@ -104,7 +105,7 @@ func (c Configure) String() string {
 }
 
 // ConfigSetServer -
-func ConfigSetServer(maxBufferLen, rwBufferLen, port int, host, appid, appkey string) {
+func ConfigSetServer(maxBufferLen, rwBufferLen, port int, host, appid, appkey string, margic bool) {
     if GlobalConfig.App.Name != "" {
         return
     }
@@ -126,6 +127,8 @@ func ConfigSetServer(maxBufferLen, rwBufferLen, port int, host, appid, appkey st
     if host != "" {
         GlobalConfig.App.Web.Host = host
     }
+
+    GlobalConfig.App.Server.Margic = margic
 }
 
 // ConfigSetTls -

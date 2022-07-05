@@ -45,9 +45,7 @@ func NewConnection(bzn bz.BZNet, c net.Conn) *Connection {
         cc.data = make(chan []byte, transDataLenghtDefault)
     }
     // MARGIC_SHIFT for transport secret.
-    if cc.BufferRead.Secret {
-        cc.BufferRead.Margic = bzn.MargicV()
-    }
+    cc.BufferRead.Margic, cc.BufferRead.Secret = bzn.MargicV()
     return cc
 }
 

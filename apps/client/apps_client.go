@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"math/rand"
-	"net"
 	"os"
 	"runtime"
 	"strconv"
@@ -12,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	bz "github.com/alackfeng/bytezero/bytezero"
 	bzc "github.com/alackfeng/bytezero/cores/client"
 	"github.com/alackfeng/bytezero/cores/utils"
 )
@@ -33,8 +33,13 @@ type AppsClient struct {
     tcpAddress string
     tcpClient* bzc.TcpClient
 
+    margic bool
+
     udpAddress string
     udpClient* bzc.UdpClient
+
+    apiAddress string
+    tls bool
 
     sendPeriod int // Microsecond
     sendBufferLen int // bytes.
@@ -75,7 +80,7 @@ func (app *AppsClient) MaxRecvBufferLen() int {
 
 // AppId - Client interface.
 func (app *AppsClient) AppId() string {
-    return appId
+    return utils.AppID()
 }
 
 // DeviceId - Client interface.
@@ -90,9 +95,12 @@ func (app *AppsClient) TargetAddress() string {
 
 // Api - http://192.168.90.162:7790/api/v1/bridge/credential/get
 func (app *AppsClient) Api(uri string) string {
-    tcpAddr, _ := net.ResolveTCPAddr("tcp", app.tcpAddress)
-    api := tcpAddr.AddrPort().Addr().String() + ":" + utils.IntToString(int(tcpAddr.AddrPort().Port() + 2))
-    return fmt.Sprintf("http://%s%s",api, uri)
+    return fmt.Sprintf("%s%s",app.apiAddress, uri)
+}
+
+// Tls -
+func (app *AppsClient) Tls() bool {
+    return app.tls
 }
 
 // show -
@@ -121,8 +129,9 @@ func (app *AppsClient) SetRecvCheck(check bool) *AppsClient {
 }
 
 // SetTcpAddress -
-func (app *AppsClient) SetTcpAddress(address string) *AppsClient {
+func (app *AppsClient) SetTcpAddress(address string, margic bool) *AppsClient {
     app.tcpAddress = address
+    app.margic = margic
     return app
 }
 
@@ -130,6 +139,23 @@ func (app *AppsClient) SetTcpAddress(address string) *AppsClient {
 func (app *AppsClient) SetUdpAddress(address string) *AppsClient {
     app.udpAddress = address
     return app
+}
+
+// SetApiAddress -
+func (app *AppsClient) SetApiAddress(address string) *AppsClient {
+    app.apiAddress = address
+    return app
+}
+
+// SetTls -
+func (app *AppsClient) SetTls(tls bool) *AppsClient {
+    app.tls = tls
+    return app
+}
+
+// MargicV - MARGIC_SHIFT for transport secret.
+func (app *AppsClient) MargicV() (byte, bool) {
+    return byte(bz.MargicValue), app.margic
 }
 
 // SetDeviceId -

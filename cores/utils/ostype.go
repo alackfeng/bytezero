@@ -79,3 +79,8 @@ func CheckAppID(t OSType, s string) bool {
     }
     return false
 }
+
+// AppID -
+func AppID() string {
+    return AppIds[GOOSType()]
+}
