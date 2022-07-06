@@ -51,11 +51,45 @@ func (c *AppTlsConfigure) Address() string {
     return fmt.Sprintf("%s:%d", c.IP, c.Port)
 }
 
-// AppWebConfigure -
-type AppWebConfigure struct {
+// AppWebHttpConfigure -
+type AppWebHttpConfigure struct {
     UP bool `yaml:"up" json:"up" binding:"required"`
     Host string `yaml:"host" json:"host" binding:"required"`
     Heart int32 `yaml:"heart" json:"heart" binding:"required"`
+}
+
+// Address -
+func (a AppWebHttpConfigure) Address() string {
+    return fmt.Sprintf("http://%s(heart:%d, up:%v)", a.Host, a.Heart, a.UP)
+}
+
+// AppWebHttpsConfigure -
+type AppWebHttpsConfigure struct {
+    UP bool `yaml:"up" json:"up" binding:"required"`
+    Host string `yaml:"host" json:"host" binding:"required"`
+    Heart int32 `yaml:"heart" json:"heart" binding:"required"`
+    CaCert string `yaml:"cacert" json:"cacert" binding:"required"`
+    CaKey string `yaml:"cakey" json:"cakey" binding:"required"`
+}
+
+// Address -
+func (a AppWebHttpsConfigure) Address() string {
+    return fmt.Sprintf("https://%s(heart:%d, up:%v)", a.Host, a.Heart, a.UP)
+}
+
+// AppWebStaticConfigure -
+type AppWebStaticConfigure struct {
+    UP bool `yaml:"up" json:"up" binding:"required"`
+    UploadPath string `yaml:"uploadPath" json:"uploadPath" binding:"required"`
+    LogPath string `yaml:"logPath" json:"logPath" binding:"required"`
+    Memory int64 `yaml:"memory" json:"memory" binding:"required"`
+}
+
+// AppWebConfigure -
+type AppWebConfigure struct {
+    Http AppWebHttpConfigure `yaml:"http" json:"http" binding:"required"`
+    Https AppWebHttpsConfigure `yaml:"https" json:"https" binding:"required"`
+    Static AppWebStaticConfigure `yaml:"static" json:"static" binding:"required"`
 }
 
 // AppCredentialConfig -
@@ -98,10 +132,10 @@ func (c* Configure) Version() string {
 
 // String -
 func (c Configure) String() string {
-    return fmt.Sprintf("\n App\t: %s-%s, ID: %s, Key:%s, MaxBuffer: %d, RWBuffer: %d \n Server\t: tcp://%s \n Web\t: http://%s(heart:%d) \n",
+    return fmt.Sprintf("\n App\t: %s-%s, ID: %s, Key:%s, MaxBuffer: %d, RWBuffer: %d \n Server\t: tcp://%s \n Web\t: %s, %s. \n",
         c.App.Name, c.App.Version, c.App.Appid, c.App.Appkey, c.App.MaxBufferLen, c.App.RWBufferLen,
         c.App.Server.Address(),
-        c.App.Web.Host, c.App.Web.Heart)
+        c.App.Web.Http.Address(), c.App.Web.Https.Address())
 }
 
 // ConfigSetServer -
@@ -125,7 +159,7 @@ func ConfigSetServer(maxBufferLen, rwBufferLen, port int, host, appid, appkey st
         GlobalConfig.App.Server.Port = port
     }
     if host != "" {
-        GlobalConfig.App.Web.Host = host
+        GlobalConfig.App.Web.Http.Host = host
     }
 
     GlobalConfig.App.Server.Margic = margic

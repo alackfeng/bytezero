@@ -4,10 +4,13 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	bz "github.com/alackfeng/bytezero/bytezero"
 	"github.com/alackfeng/bytezero/cores/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/thinkerou/favicon"
+	"github.com/unrolled/secure"
 )
 
 var logweb = utils.Logger(utils.Fields{"animal": "web"})
@@ -28,14 +31,28 @@ type GinWeb struct {
     heart int32
     *gin.Engine
     bzn bz.BZNet
+
+    http bool
+    // https api.
+    https bool
+    address string
+    certFile string
+    keyFile string
+
+    // files.
+    uploadPath string
+    logPath string
+    memory int64 // = 8 << 20 // 8M.
 }
 
 // NewGinWeb -
 func NewGinWeb(uri string, ht int32, bzn bz.BZNet) *GinWeb {
-    gw := &GinWeb{host: uri, heart: ht, bzn: bzn}
+    gw := &GinWeb{host: uri, heart: ht, bzn: bzn }
+    gw.http = uri != ""
+    gw.memory = 8 << 20
     // gw.Engine = gin.Default()
     gw.Engine = gin.New()
-    return gw.Middlewares()
+    return gw
 }
 
 // Cors -
@@ -63,25 +80,24 @@ func (gw *GinWeb) Cors() gin.HandlerFunc {
 
 // Middlewares -
 func (gw *GinWeb) Middlewares() *GinWeb {
+    gw.Logger(gw.logPath)
     gw.Use(gin.Logger())
+
     gw.Use(gw.Cors())
 	gw.Use(gin.Recovery())
 	// add auth validate.
 	// gw.Use(gin.BasicAuth(gin.Accounts{"username": "feng", "password": "yue"}))
-
     return gw
 }
 
 // Logger -
-func (gw *GinWeb) Logger(logfile string) {
-	if logfile == "" {
-		return
-	}
-
-	f, _ := os.Create(logfile)
-	// gin.DisableConsoleColor()
-	// gin.DefaultWriter = io.MultiWriter(f)
-	gin.DefaultWriter = io.MultiWriter(f, os.Stdout)
+func (gw *GinWeb) Logger(logPath string) {
+    logfile := filepath.Join(gw.logPath, utils.LogName("bytezero_access_"))
+    logweb.Infoln("Web.Logger to ", logfile)
+    f, _ := os.Create(logfile)
+    // gin.DisableConsoleColor()
+    // gin.DefaultWriter = io.MultiWriter(f)
+    gin.DefaultWriter = io.MultiWriter(f, os.Stdout)
 }
 
 // Admins -
@@ -92,7 +108,7 @@ func (gw *GinWeb) Admins() {
 func (gw *GinWeb) Statics() {
 
 	// 上传文件大小.
-	gw.MaxMultipartMemory = 8 << 20 // 8M.
+	gw.MaxMultipartMemory = gw.memory
 
     // http://192.168.90.162:7790/public/upload.html
     // http://192.168.90.162:7790/public/index.html
@@ -115,20 +131,90 @@ func (gw *GinWeb) Routers() {
 	{
 		gw.RouterBridge(v1)
 	}
+
+    gw.Use(favicon.New("./public/favicon.ico"))
+
+
+
 	// gw.RouterWS()
+}
+
+// TlsHandler -
+func (gw *GinWeb) TlsHandler() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        secureMiddleware := secure.New(secure.Options{
+            SSLRedirect: true,
+            SSLHost:     "localhost:8080",
+        })
+        err := secureMiddleware.Process(c.Writer, c.Request)
+        if err != nil {
+            logweb.Errorln("Web.TlsHandler - error", err.Error())
+            return
+        }
+        logweb.Errorln("Web.TlsHandler - ", c.RemoteIP())
+        c.Next()
+    }
+}
+
+// SetSecretTransport -
+func (gw *GinWeb) SetSecretTransport(address string, certFile string, keyFile string) *GinWeb {
+    gw.address = address
+    gw.certFile = certFile
+    gw.keyFile = keyFile
+    if gw.address == "" || gw.certFile == "" || gw.keyFile == "" {
+        logweb.Errorf("Web.SetSecretTransport - must is null. maybe %s, %s, %s.", gw.address, gw.certFile, gw.keyFile)
+        return gw
+    }
+    gw.https = true
+    return gw
+}
+
+// SetStaticInfo -
+func (gw *GinWeb) SetStaticInfo(memory int64, logPath string, uploadPath string) *GinWeb {
+    gw.logPath = logPath
+    gw.uploadPath = uploadPath
+    gw.memory = memory
+    utils.DirIsExistThenMkdir(filepath.Join(gw.logPath))
+    utils.DirIsExistThenMkdir(filepath.Join(gw.uploadPath))
+    return gw
+}
+
+// StartTls -
+func (gw *GinWeb) StartTls() {
+    if !gw.https {
+        return
+    }
+    if gw.address == "" || gw.certFile == "" || gw.keyFile == "" {
+        logweb.Errorf("Web.StartTls - must is null. maybe %s, %s, %s.", gw.address, gw.certFile, gw.keyFile)
+        return
+    }
+
+    gw.Use(gw.TlsHandler())
+    logweb.Println("Web.Start https://", gw.address, " , Start Now.")
+    gw.RunTLS(gw.address, gw.certFile, gw.keyFile)
+    logweb.Println("Web.Start https://", gw.address, " , Start Over.")
 }
 
 // Start - Start
 func (gw *GinWeb) Start() {
-
+    gw.Middlewares()
 	gw.Routers()
 
-	if gw.host == "" {
-		logweb.Panic("GinWeb uri host is null.")
-	}
-	logweb.Println("GinWeb uri host is", gw.host, " , Start Now.")
-	host := gw.host
-	gw.Run(host)
+    if gw.https && gw.http {
+        go gw.StartTls()
+    } else if gw.https {
+        gw.StartTls()
+    }
+
+    if gw.http {
+        if gw.host == "" {
+            logweb.Panic("Web.Start uri host is null.")
+        }
+        logweb.Println("Web.Start uri host is", gw.host, " , Start Now.")
+        host := gw.host
+        gw.Run(host)
+        logweb.Println("Web.Start uri host is", gw.host, " , Start Over.")
+    }
 }
 
 

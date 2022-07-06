@@ -1,6 +1,10 @@
 package web
 
-import "github.com/gin-gonic/gin"
+import (
+	"fmt"
+
+	"github.com/gin-gonic/gin"
+)
 
 // Module -
 type Module int32
@@ -15,6 +19,17 @@ type Operator struct {
     IP    string   // 公网IP地址.
     AppID string
     Token string   // AccessToken or RefreshToken.
+}
+
+// CheckRequest -
+func CheckRequest(c *gin.Context, method, mimetype string) error {
+	if c.Request.Method != method {
+		return fmt.Errorf("Method %s No Support", c.Request.Method)
+	}
+	if c.ContentType() != mimetype {
+		return fmt.Errorf("Content-Type %s No Support", c.ContentType())
+	}
+	return nil
 }
 
 // HandleAction -

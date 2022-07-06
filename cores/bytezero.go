@@ -89,15 +89,16 @@ func (bzn *BytezeroNet) Quit() bool {
 // StartWeb -
 func (bzn *BytezeroNet) StartWeb() {
     config := ConfigGlobal()
-    if !config.App.Web.UP {
-        return
-    }
-    if config.App.Web.Host == "" {
+    if !config.App.Web.Http.UP && !config.App.Web.Https.UP {
         return
     }
     if bzn.gw == nil {
-        bzn.gw = web.NewGinWeb(config.App.Web.Host, config.App.Web.Heart, bzn)
+        bzn.gw = web.NewGinWeb(config.App.Web.Http.Host, config.App.Web.Http.Heart, bzn)
     }
+    if config.App.Web.Https.UP {
+        bzn.gw.SetSecretTransport(config.App.Web.Https.Host, config.App.Web.Https.CaCert, config.App.Web.Https.CaKey)
+    }
+    bzn.gw.SetStaticInfo(config.App.Web.Static.Memory, config.App.Web.Static.LogPath, config.App.Web.Static.UploadPath)
     bzn.gw.Start()
 }
 // StartTcp -

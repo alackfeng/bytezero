@@ -2,20 +2,31 @@ app:
   name: "bytezero-go"
   version: "v1.0.0"
   server:
-    up: true
+    up: false
     ip: 192.168.90.162
     port: 7788
     margic: true
   tls:
-    up: true
+    up: false
     ip: 192.168.90.162
     port: 7789
     cacert: "./scripts/certs/server/server.crt"
     cakey: "./scripts/certs/server/server.key"
   web:
-    up: true
-    host: 192.168.90.162:7790
-    heart: 3000
+    http:
+      up: true
+      host: 192.168.90.162:7790
+      heart: 3000
+    https:
+      up: true
+      host: 192.168.90.162:7791
+      cacert: "./scripts/certs/server/server.crt"
+      cakey: "./scripts/certs/server/server.key"
+    static:
+      up: true
+      uploadPath: "./bin/caches/files/upload/"
+      logPath: "./bin/log/"
+      memory: 10240000
   maxBufferLen: 10485760
   rwBufferLen: 10485760
   appid: bytezero-appid

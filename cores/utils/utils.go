@@ -111,6 +111,12 @@ func MsFormatFN(ts int64) string {
 	// return fmt.Sprintf("%02d-%02d-%02d_%02d-%02d-%02d", currMs.Year(), currMs.Month(), currMs.Day(), currMs.Hour(), currMs.Minute(), currMs.Second())
 }
 
+// LogName -
+func LogName(label string) string {
+    currMs := time.Unix(0, NowMs()*1000000)
+    return fmt.Sprintf("%s_%02d-%02d-%02d_%02d-%02d-%02d.log", label, currMs.Year(), currMs.Month(), currMs.Day(), currMs.Hour(), currMs.Minute(), currMs.Second())
+}
+
 // MsFormatDay - ms format day peroid.
 func MsFormatDay(ts int64) string {
 	currMs := time.Unix(0, ts*1000000)
