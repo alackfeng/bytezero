@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Multiple file upload</title>
+</head>
+<body>
+<h1>Upload multiple files with fields</h1>
+
+<form action="/api/v1/bridge/files/upload" method="post" enctype="multipart/form-data">
+    Path: <input type="text" name="path" value="logs"><br>
+    ID: <input type="text" name="id" value="SN001"><br>
+    Realm: <input type="text" name="realm" value="SN"><br>
+    Files: <input type="file" id="file" name="files" multiple><br><br>
+    <input type="submit" value="Submit">
+</form>
+<br />
+<br />
+<div>
+    WS URL: <input type="text" width="300px" id="wsurl" name="wsurl" value="ws://120.78.174.103:8810/wsfile"><br>
+    <progress id="progressOne" style="width:400px;" max="100" value="0"></progress>
+    <blockquote id="Status" style="word-break:break-all;"></blockquote>
+    <blockquote id="ServerMd5" style="word-break:break-all;"></blockquote>
+</div>
+
+<script type="text/javascript">
+var fileBox = document.getElementById('file');
+var reader = null;  //读取操作对象
+var step = 1024 * 256;  //每次读取文件大小 ,字节数
+var cuLoaded = 0; //当前已经读取总数
+var file = null; //当前读取的文件对象
+var enableRead = true;//标识是否可以读取文件
+var total = 0;        //记录当前文件总字节数
+var startTime = null; //标识开始上传时间
+fileBox.onchange = function () {
+    //获取文件对象
+    file = this.files[0];
+    total = file.size;
+    console.info("文件大小：" + file.size);
+    if (ws == null) {
+        createSocket(function () {
+                bindReader();
+            });
+        return;
+    }
+    bindReader();
+}
+//绑定reader
+function bindReader() {
+    cuLoaded = 0;
+    startTime = new Date();
+    enableRead = true;
+    reader = new FileReader();
+    //读取一段成功
+    reader.onload = function (e) {
+        console.info('读取总数：' + e.loaded);
+        if (enableRead == false)
+            return false;
+        //根据当前缓冲区来控制客户端读取速度
+        if (ws.bufferedAmount > step * 10) {
+            setTimeout(function () {
+                //继续读取
+                console.log('--------------》进入等待');
+                loadSuccess(e.loaded);
+            }, 3);
+        } else {
+            //继续读取
+            loadSuccess(e.loaded);
+        }
+    }
+    //开始读取
+    readBlob();
+}
+//读取文件成功处理
+function loadSuccess(loaded) {
+    //将分段数据上传到服务器
+    var blob = reader.result;
+    //使用WebSocket 服务器发送数据
+    if (cuLoaded == 0) {
+        //发送文件名
+        let head = {"name":file.name, "total": file.size}
+        console.log("head: ", JSON.stringify(head))
+        ws.send(JSON.stringify(head));
+    }
+    ws.send(blob);
+    //如果没有读完，继续
+    cuLoaded += loaded;
+    if (cuLoaded < total) {
+        readBlob();
+    } else {
+        let finish = {"name":file.name, "md5": "080e452ca09a5e11588de06f03f98395"}
+        console.log("finish: ", JSON.stringify(finish))
+        ws.send(JSON.stringify(finish));
+        console.log('总共上传：' + cuLoaded + ',总共用时：' + (new Date().getTime() - startTime.getTime()) / 1000);
+    }
+    //显示结果进度
+    var percent = (cuLoaded / total) * 100;
+    document.getElementById('Status').innerText = percent;
+    document.getElementById('progressOne').value = percent;
+}
+//指定开始位置，分块读取文件
+function readBlob() {
+    //指定开始位置和结束位置读取文件
+    var blob = file.slice(cuLoaded, cuLoaded + step);
+    reader.readAsArrayBuffer(blob);
+}
+//中止
+function stop() {
+    //中止读取操作
+    console.info('中止，cuLoaded：' + cuLoaded);
+    enableRead = false;
+    reader.abort();
+}
+//继续
+function containue() {
+    console.info('继续，cuLoaded：' + cuLoaded);
+    enableRead = true;
+    readBlob();
+}
+var ws = null;
+function createSocket(onSuccess) {
+    var url = document.getElementById("wsurl").value;
+    console.log("ws url " + url)
+    ws = new WebSocket(url, ["file"]);
+    ws.onopen = function () {
+        console.log('connected成功');
+        if (onSuccess)
+            onSuccess();
+    }
+    ws.onmessage = function (e) {
+        var data = e.data;
+        if (isNaN(data) == false) {
+            //console.log('当前上传成功：' + data);
+        } else {
+            console.info(data);
+            let fileinfo = JSON.parse(data)
+            document.getElementById('ServerMd5').innerText = fileinfo.md5;
+       }
+    }
+    ws.onclose = function (e) {
+        //中止客户端读取
+        stop();
+        console.log('链接断开');
+    }
+    ws.onerror = function (e) {
+        //中止客户端读取
+        stop();
+        console.info(e);
+        console.log('传输中发生异常');
+    }
+}
+// createSocket()
+</script>
+</body>
+</html>
