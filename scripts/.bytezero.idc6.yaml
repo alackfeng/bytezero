@@ -3,23 +3,23 @@ app:
   version: "v1.0.0"
   server:
     up: true
-    ip: 192.168.90.116
+    ip: 61.164.248.149
     port: 7788
     margic: true
   tls:
     up: true
-    ip: 192.168.90.116
+    ip: 61.164.248.149
     port: 7789
     cacert: "./scripts/certs/server/server.crt"
     cakey: "./scripts/certs/server/server.key"
   web:
     http:
       up: true
-      host: 192.168.90.116:7790
+      host: 61.164.248.149:7790
       heart: 3000
     https:
       up: true
-      host: 192.168.90.116:7791
+      host: 61.164.248.149:7791
       cacert: "./scripts/certs/server/server.crt"
       cakey: "./scripts/certs/server/server.key"
     static:
@@ -34,6 +34,6 @@ app:
   credential:
     expiredMs: 60000
     urls:
-      - tcp://192.168.90.116:7788
-      - tls://192.168.90.116:7789
+      - tcp://61.164.248.149:7788
+      - tls://61.164.248.149:7789
 

@@ -32,12 +32,19 @@ func (gw *GinWeb) RouterBridge(grg *gin.RouterGroup) {
 func (gw *GinWeb) HandleBridgeCredentialGet(c *gin.Context) {
 	// gw.HandleAction(Module_api, Operator{}, c)
 
-    result := &bzweb.CredentialResult{
-        Expired: utils.NowMs() + gw.bzn.CredentialExpiredMs(),
+    result := bzweb.CredentialUrlResult{}
+    now := utils.NowMs() + gw.bzn.CredentialExpiredMs()
+    urls := gw.bzn.CredentialUrls()
+    for _, url := range urls {
+        credential := bzweb.CredentialURL{
+            URL: url,
+            Expired: now,
+        }
+        cred := utils.NewCredential(credential.Expired)
+        credential.User = cred.Username()
+        credential.Pass = cred.Sign(gw.bzn.AppKey())
+        result = append(result, credential)
     }
-    cred := utils.NewCredential(result.Expired)
-    result.User = cred.Username()
-    result.Pass = cred.Sign(gw.bzn.AppKey())
     c.JSON(http.StatusOK, result)
 }
 

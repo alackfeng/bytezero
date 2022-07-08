@@ -289,7 +289,8 @@ func (a *AppsChannel) handlePt(commonPt *protocol.CommonPt) error {
 func (a *AppsChannel) channelCreate(sessionId string) (err error) {
 
     httpClient := utils.NewHttpClient()
-    result := &bzweb.CredentialResult{}
+    // result := &bzweb.CredentialResult{}
+    result := &bzweb.CredentialUrlResult{}
     err = httpClient.GetJson(a.app.Api("/api/v1/bridge/credential/get"), result)
     if err != nil {
         return err
@@ -300,10 +301,12 @@ func (a *AppsChannel) channelCreate(sessionId string) (err error) {
         AppId: []byte(a.app.AppId()),
         DeviceId: []byte(a.app.DeviceId()),
         SessionId: []byte(sessionId),
-        User: []byte(result.User),
+        // User: []byte(result.User),
+        User: []byte(result.Get(0).User),
     }
     channelCreatePt.User = append(channelCreatePt.User, ":1"...)
-    channelCreatePt.Sign = []byte(utils.Md5Sign(channelCreatePt.User, channelCreatePt.FieldsSign(), []byte(result.Pass)))
+    // channelCreatePt.Sign = []byte(utils.Md5Sign(channelCreatePt.User, channelCreatePt.FieldsSign(), []byte(result.Pass)))
+    channelCreatePt.Sign = []byte(utils.Md5Sign(channelCreatePt.User, channelCreatePt.FieldsSign(), []byte(result.Get(0).Pass)))
     mByte, err := protocol.Marshal(channelCreatePt)
     if err != nil {
         return err

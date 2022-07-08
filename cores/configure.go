@@ -95,6 +95,7 @@ type AppWebConfigure struct {
 // AppCredentialConfig -
 type AppCredentialConfig struct {
     ExpiredMs int64 `yaml:"expiredMs" json:"expiredMs" binding:"required"`
+    Urls []string `yaml:"urls" json:"urls" binding:"required"`
 }
 
 // AppConfigure -

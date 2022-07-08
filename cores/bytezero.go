@@ -66,6 +66,13 @@ func (bzn *BytezeroNet) CredentialExpiredMs() int64 {
     return ConfigGlobal().App.Credential.ExpiredMs
 }
 
+// CredentialUrls -
+func (bzn *BytezeroNet) CredentialUrls() []string {
+    return ConfigGlobal().App.Credential.Urls
+}
+
+
+
 // MargicV - MARGIC_SHIFT for transport secret.
 func (bzn *BytezeroNet) MargicV() (byte, bool) {
     config := ConfigGlobal()
