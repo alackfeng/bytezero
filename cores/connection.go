@@ -18,7 +18,6 @@ type Connection struct {
     utils.BufferRead
     net.Conn
     bzn bz.BZNet
-    maxBufferLen int
     quit bool
     durationMs int64
 
@@ -37,8 +36,7 @@ func NewConnection(bzn bz.BZNet, c net.Conn) *Connection {
     cc := &Connection {
         Conn: c,
         bzn: bzn,
-        maxBufferLen: defaultMaxBufferLen*10,
-        BufferRead: *utils.NewBufferRead(defaultMaxBufferLen*10),
+        BufferRead: *utils.NewBufferRead(defaultMaxBufferLen*1000),
         dataSync: true,
     }
     if !cc.dataSync {
@@ -92,7 +90,7 @@ func (c *Connection) Equals(o *Connection) bool {
 
 // Quit -
 func (c *Connection) Quit() {
-    c.Close()
+    go (func() { c.Close() })()
     c.quit = true
 }
 
@@ -154,28 +152,13 @@ func (c *Connection) handleTrans() {
 // handleRecevier -
 func (c *Connection) handleRecevier() error {
     defer c.bzn.HandleConnClose(c)
-    // defer c.Close()
-    // buffer := make([]byte, c.maxBufferLen)
-    // currOffset := 0
-    // readOffset := 0
-    // remainLen := 0
-    // nextRead := true
-    count := 0
-    for {
-        // if nextRead {
-        //     len, err := c.Read(buffer[readOffset:])
-        //     if err != nil {
-        //         logbz.Errorf("Connection handleRecevier - read error.", err.Error())
-        //         return err
-        //     }
 
-        //     readOffset += len
-        //     remainLen = readOffset - currOffset
-        //     if readOffset > c.maxBufferLen - c.maxBufferLen / 10 {
-        //         buffer = buffer[currOffset:readOffset]
-        //         currOffset = 0; readOffset = remainLen
-        //     }
-        // }
+    for {
+
+        if c.quit == true {
+            break
+        }
+
         if _, err := c.BufferRead.Read(func(b []byte) (int, error) {
             return c.Conn.Read(b)
         }); err != nil {
@@ -183,21 +166,13 @@ func (c *Connection) handleRecevier() error {
             return err
         }
 
-        // len, err := c.TCPConn.Read(buffer)
-        // if err != nil {
-        //     logbz.Errorf("Connection handleRecevier - read error.", err.Error())
-        //     return err
-        // }
-
         if c.BufferRead.Empty() {
             logbz.Debugln("Connection handleRecevier - wait next.")
             continue
         }
 
         out := &protocol.CommonPt{}
-        // if err := protocol.Unmarshal(buffer[0:len], out); err != nil {
         if err := protocol.Unmarshal(c.BufferRead.Get(), out); err != nil {
-                // if err := protocol.Unmarshal(buffer[currOffset:readOffset], out); err != nil {
             if err == protocol.ErrNoFixedMe || err == protocol.ErrNoMethodType {
                 logbz.Errorln("Connection handleRecevier - Unmarshal error.", err.Error())
                 return err
@@ -212,9 +187,6 @@ func (c *Connection) handleRecevier() error {
         }
         c.BufferRead.Next(out.Len())
 
-        // currOffset += out.Len()
-        // remainLen = readOffset - currOffset
-
         // fmt.Printf(">>>>> Connection handleRecevier - recv buffer len %d, unmarshal %d, count %d, payload(%d).\n", c.BufferRead.Length(), out.Len(), count, out.Length)
         // fmt.Printf(">>>>> Connection handleRecevier - recv buffer len %d, unmarshal %d, count %d.\n", len, out.Len(), count)
         if out.Type == protocol.Method_CHANNEL_CREATE {
@@ -226,14 +198,10 @@ func (c *Connection) handleRecevier() error {
                 utils.MsFormat(int64(out.Timestamp)), utils.MsFormat(time.Now().UnixMilli()))
         }
 
-        count++
         if err := c.bzn.HandlePt(c, out); err != nil {
             return err
         }
 
-        if c.quit == true {
-            break
-        }
     }
     return nil
 }
