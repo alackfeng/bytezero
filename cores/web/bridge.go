@@ -3,6 +3,7 @@ package web
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 
@@ -17,13 +18,22 @@ const (
 	urlBaseBridge                = "/bridge"
 	urlBridgeCredentialGet       = urlBaseBridge + "/credential/get"
     urlBridgeFilesUpload         = urlBaseBridge + "/files/upload"
+    urlBridgeFilesDownload       = urlBaseBridge + "/files/download"
+    urlBridgeFilesList           = urlBaseBridge + "/files/list"
+    urlBridgeLogsDownload        = urlBaseBridge + "/logs/download"
+    urlBridgeLogsList            = urlBaseBridge + "/logs/list"
 )
 
 
 // RouterBridge -
 func (gw *GinWeb) RouterBridge(grg *gin.RouterGroup) {
-	grg.Any(urlBridgeCredentialGet, gw.HandleBridgeCredentialGet)
+	grg.GET(urlBridgeCredentialGet, gw.HandleBridgeCredentialGet)
+    grg.POST(urlBridgeCredentialGet, gw.HandleBridgeCredentialGet)
 	grg.POST(urlBridgeFilesUpload, gw.HandleBridgeFilesUpload)
+	grg.GET(urlBridgeFilesDownload, gw.HandleBridgeFilesDownload)
+	grg.GET(urlBridgeFilesList, gw.HandleBridgeFilesList)
+	grg.GET(urlBridgeLogsDownload, gw.HandleBridgeLogsDownload)
+	grg.GET(urlBridgeLogsList, gw.HandleBridgeLogsList)
 }
 
 
@@ -35,9 +45,15 @@ func (gw *GinWeb) HandleBridgeCredentialGet(c *gin.Context) {
     result := bzweb.CredentialUrlResult{}
     now := utils.NowMs() + gw.bzn.CredentialExpiredMs()
     urls := gw.bzn.CredentialUrls()
-    for _, url := range urls {
+    for _, u := range urls {
+        ur, err := url.Parse(u)
+        if err != nil {
+            continue
+        }
         credential := bzweb.CredentialURL{
-            URL: url,
+            Scheme: ur.Scheme,
+            IP: ur.Hostname(),
+            Port: ur.Port(),
             Expired: now,
         }
         cred := utils.NewCredential(credential.Expired)
@@ -55,6 +71,11 @@ type FileUpload struct {
 
 // SaveFileName -
 func (a *FileUpload) SaveFileName() string {
+    return filepath.Join(a.FilePath, a.FileName)
+}
+
+// DownFileName -
+func (a *FileUpload) DownFileName() string {
     return filepath.Join(a.FilePath, a.FileName)
 }
 
@@ -101,4 +122,59 @@ func (gw *GinWeb) HandleBridgeFilesUpload(c *gin.Context) {
     c.String(http.StatusOK, fmt.Sprintf("Uploaded successfully %d files with save to path<%s>.", len(files), upload.FilePath))
 }
 
+// HandleBridgeFilesDownload -
+func (gw *GinWeb) HandleBridgeFilesDownload(c *gin.Context) {
+
+    upload := &FileUpload{
+        FilePath: gw.uploadPath,
+        FileName: c.Query("file"),
+    }
+    if err := utils.DirIsExistThenMkdir(upload.FilePath); err != nil {
+        logweb.Warningln("download error, path not existed.", err.Error())
+        c.String(http.StatusNotFound, fmt.Sprintf("file<%s> not found", upload.FileName))
+        return
+    }
+    downFileName := upload.DownFileName()
+    if ok, _ := utils.IsExistFile(downFileName); ok {
+        logweb.Warningln("download error, file not existed.")
+        c.String(http.StatusNotFound, fmt.Sprintf("file<%s> not found", upload.FileName))
+        return
+    }
+    c.Header("Content-Type", "application/octet-stream;text/html")
+    c.Header("Content-Disposition", "attachment; filename="+upload.FileName)
+    c.File(downFileName)
+
+    c.String(http.StatusOK, fmt.Sprintf("Download successfully file<%s>.", downFileName))
+}
+
+
+// HandleBridgeFilesList -
+func (gw *GinWeb) HandleBridgeFilesList(c *gin.Context) {
+
+}
+
+// HandleBridgeLogsDownload -
+func (gw *GinWeb) HandleBridgeLogsDownload(c *gin.Context) {
+    logId := c.Query("log")
+    if err := utils.DirIsExistThenMkdir(gw.logPath); err != nil {
+        logweb.Warningln("log error, path not existed.", err.Error())
+        c.String(http.StatusNotFound, fmt.Sprintf("log<%s> not found", logId))
+        return
+    }
+    logFileName := filepath.Join(gw.logPath, logId)
+    if ok, _ := utils.IsExistFile(logFileName); ok {
+        logweb.Warningln("log error, file not existed.")
+        c.String(http.StatusNotFound, fmt.Sprintf("log<%s> not found", logId))
+        return
+    }
+    c.Header("Content-Type", "application/octet-stream;text/html")
+    c.Header("Content-Disposition", "attachment; filename="+logFileName)
+    c.File(logFileName)
+
+    c.String(http.StatusOK, fmt.Sprintf("Download successfully log file<%s>.", logId))
+}
+
+// HandleBridgeLogsList -
+func (gw *GinWeb) HandleBridgeLogsList(c *gin.Context) {
+}
 
