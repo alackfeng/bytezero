@@ -92,7 +92,7 @@ func (gw *GinWeb) Middlewares() *GinWeb {
 
 // Logger -
 func (gw *GinWeb) Logger(logPath string) {
-    logfile := filepath.Join(gw.logPath, utils.LogName("bytezero_access_"))
+    logfile := filepath.Join(gw.logPath, utils.LogName("bytezero_access"))
     logweb.Infoln("Web.Logger to ", logfile)
     f, _ := os.Create(logfile)
     // gin.DisableConsoleColor()

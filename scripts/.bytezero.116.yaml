@@ -32,7 +32,7 @@ app:
   appid: bytezero-appid
   appkey: secret
   credential:
-    expiredMs: 60000
+    expiredMs: 3600000
     urls:
       - tcp://192.168.90.116:7788
       - tls://192.168.90.116:7789
