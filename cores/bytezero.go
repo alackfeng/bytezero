@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"regexp"
 	"sync"
 
 	bz "github.com/alackfeng/bytezero/bytezero"
@@ -33,6 +34,9 @@ type BytezeroNet struct {
     l sync.Mutex
     connections map[string]*Connection
     channels map[string]*Channel
+
+    accessIpsAllow utils.AccessIpsAllow
+    accessIpsDeny utils.AccessIpsDeny
 }
 
 var _ bz.BZNet = (*BytezeroNet)(nil)
@@ -154,8 +158,89 @@ func (bzn *BytezeroNet) HandleConnClose(connection interface{}) {
     fmt.Println("BytezeroNet::HandleConnClose - over.")
 }
 
+// AccessIpsAllow -
+func (bzn *BytezeroNet) AccessIpsAllow(ip string) error {
+    config := ConfigGlobal()
+    if config.App.AccessIpsAllow == "" {
+        return nil
+    }
+    if len(bzn.accessIpsAllow.Allow) == 0 {
+        if err := bzn.accessIpsAllow.Load(config.App.AccessIpsAllow); err != nil {
+            return err
+        }
+        fmt.Println("-----------------AccessIpsAllow accessIps: ", bzn.accessIpsAllow.Allow)
+        if len(bzn.accessIpsAllow.Allow) == 0 {
+            return nil // allow all.
+        }
+    }
+
+    if _, ok := bzn.accessIpsAllow.Allow[ip]; ok {
+        return nil // allow.
+    }
+    match := false
+    for ipAllow, drop := range bzn.accessIpsAllow.Allow {
+        if ipAllow == "" || !drop {
+            continue
+        }
+        if ipAllow == "*" {
+            match = true
+            break
+        }
+        if ipAllow == ip {
+            match = true
+            break
+        }
+        ipAllow = "^" + ipAllow + "$"
+        if ok, _ := regexp.MatchString(ipAllow, ip); ok {
+			match = true
+			break
+		}
+    }
+    if match {
+        return nil // allow.
+    }
+    return fmt.Errorf("ip<%s> deny", ip)
+}
+
+// AccessIpsDeny -
+func (bzn *BytezeroNet) AccessIpsDeny(ip string) error {
+    config := ConfigGlobal()
+    if config.App.AccessIpsDeny == "" {
+        return nil
+    }
+    if len(bzn.accessIpsDeny.Deny) == 0 {
+        if err := bzn.accessIpsDeny.Load(config.App.AccessIpsDeny); err != nil {
+            return err
+        }
+        fmt.Println("-----------------AccessIpsDeny accessIps: ", bzn.accessIpsDeny.Deny)
+        if len(bzn.accessIpsDeny.Deny) == 0 {
+            return nil // allow all.
+        }
+    }
+
+    if deny, ok := bzn.accessIpsDeny.Deny[ip]; ok && deny {
+        return fmt.Errorf("ip<%s> deny", ip)
+    }
+    return nil // allow.
+}
+
+// AccessIpsForbid -
+func (bzn *BytezeroNet) AccessIpsForbid(ip string, allow bool) error {
+    config := ConfigGlobal()
+    return bzn.accessIpsDeny.Upload(config.App.AccessIpsDeny, ip)
+}
+
 // HandleConn -
 func (bzn *BytezeroNet) HandleConn(conn net.Conn) error {
+    // access it?
+    if host, _, err := net.SplitHostPort(conn.RemoteAddr().String()); err == nil {
+        if err := bzn.AccessIpsDeny(host); err != nil {
+            conn.Close()
+            return fmt.Errorf("ip<%s> deny", host)
+        }
+    }
+
+    //
     bzn.l.Lock()
     c := NewConnection(bzn, conn).Main()
     bzn.connections[c.Id()] = c

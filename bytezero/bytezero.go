@@ -20,6 +20,11 @@ type BZNet interface {
     HandleConnClose(connection interface{})
     HandlePt(BZNetReceiver, *protocol.CommonPt) error
 
+    // access ips.
+    AccessIpsAllow(ip string) error
+    AccessIpsDeny(ip string) error
+    AccessIpsForbid(ip string, allow bool) error
+
     // credential.
     AppID() string
     AppKey() string

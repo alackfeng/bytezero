@@ -78,6 +78,27 @@ func (gw *GinWeb) Cors() gin.HandlerFunc {
 	}
 }
 
+// AccessIps -
+func (gw *GinWeb) AccessIps() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        ip := c.RemoteIP()
+        if err := gw.bzn.AccessIpsAllow(ip); err != nil {
+            logweb.Errorln("Web.AccessIpsAllow - ip ", ip, err.Error())
+            c.AbortWithStatus(200)
+            return
+        }
+        if err := gw.bzn.AccessIpsDeny(ip); err != nil {
+            logweb.Errorln("Web.AccessIpsDeny - ip ", ip, err.Error())
+            c.AbortWithStatus(200)
+            return
+        }
+        if err := gw.bzn.AccessIpsForbid(ip, false); err != nil {
+            logweb.Errorln("Web.AccessIpsForbid - ip ", ip, err.Error())
+        }
+        c.Next()
+    }
+}
+
 // Middlewares -
 func (gw *GinWeb) Middlewares() *GinWeb {
     gw.Logger(gw.logPath)
@@ -85,6 +106,7 @@ func (gw *GinWeb) Middlewares() *GinWeb {
 
     gw.Use(gw.Cors())
 	gw.Use(gin.Recovery())
+    gw.Use(gw.AccessIps())
 	// add auth validate.
 	// gw.Use(gin.BasicAuth(gin.Accounts{"username": "feng", "password": "yue"}))
     return gw

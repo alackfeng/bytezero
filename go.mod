@@ -12,4 +12,5 @@ require (
 	github.com/spf13/viper v1.11.0
 	github.com/thinkerou/favicon v0.1.0
 	github.com/unrolled/secure v1.11.0
+	gopkg.in/yaml.v2 v2.4.0
 )

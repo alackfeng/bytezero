@@ -109,6 +109,8 @@ type AppConfigure struct {
     RWBufferLen int `yaml:"rwBufferLen" json:"rwBufferLen" binding:"required"`
     Appid string `yaml:"appid" json:"appid" binding:"required"`
     Appkey string `yaml:"appkey" json:"appkey" binding:"required"`
+    AccessIpsAllow string `yaml:"accessIpsAllow" json:"accessIpsAllow" binding:"required"`
+    AccessIpsDeny string `yaml:"accessIpsDeny" json:"accessIpsDeny" binding:"required"`
     Credential AppCredentialConfig `yaml:"credential" json:"credential" binding:"required"`
 }
 
