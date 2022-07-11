@@ -60,7 +60,7 @@ func (a *AccessIpsDeny) Upload(accessIpFile string, ip string) error {
     a.Deny[ip] = true // add one.
 
     writer := bufio.NewWriter(f)
-    writer.WriteString(fmt.Sprintf("  %s: true", ip))
+    writer.WriteString(fmt.Sprintf("  %s: true\n", ip))
     writer.Flush()
     f.Close()
     return nil

@@ -92,9 +92,6 @@ func (gw *GinWeb) AccessIps() gin.HandlerFunc {
             c.AbortWithStatus(200)
             return
         }
-        if err := gw.bzn.AccessIpsForbid(ip, false); err != nil {
-            logweb.Errorln("Web.AccessIpsForbid - ip ", ip, err.Error())
-        }
         c.Next()
     }
 }
