@@ -227,12 +227,12 @@ func (gw *GinWeb) Start() {
 
     if gw.http {
         if gw.host == "" {
-            logweb.Panic("Web.Start uri host is null.")
+            logweb.Panic("Web.Start http:// is null.")
         }
-        logweb.Println("Web.Start uri host is", gw.host, " , Start Now.")
+        logweb.Println("Web.Start http://", gw.host, " , Start Now.")
         host := gw.host
         gw.Run(host)
-        logweb.Println("Web.Start uri host is", gw.host, " , Start Over.")
+        logweb.Println("Web.Start http://", gw.host, " , Start Over.")
     }
 }
 

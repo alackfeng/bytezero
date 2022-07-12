@@ -32,7 +32,7 @@ app:
   appid: bytezero-appid
   appkey: secret
   accessIpsAllow: "./scripts/.accessIps.allow"
-  accessIpsDeny: "./scripts/.accessIps.deny"
+  accessIpsDeny: "./scripts/.accessIps.idc6.deny"
   credential:
     expiredMs: 3600000
     urls:
