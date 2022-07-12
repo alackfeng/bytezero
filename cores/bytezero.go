@@ -231,12 +231,19 @@ func (bzn *BytezeroNet) AccessIpsForbid(ip string, deny bool) error {
 }
 
 // AccessIpsReload -
-func (bzn *BytezeroNet) AccessIpsReload() error {
+func (bzn *BytezeroNet) AccessIpsReload(allow bool) error {
     config := ConfigGlobal()
-    if err := bzn.accessIpsDeny.Load(config.App.AccessIpsDeny); err != nil {
-        return err
+    if allow {
+        if err := bzn.accessIpsAllow.Load(config.App.AccessIpsAllow); err != nil {
+            return err
+        }
+        fmt.Println("-----------------AccessIpsReload allow accessIps: ", bzn.accessIpsDeny.Deny)
+    } else {
+        if err := bzn.accessIpsDeny.Load(config.App.AccessIpsDeny); err != nil {
+            return err
+        }
+        fmt.Println("-----------------AccessIpsReload deny accessIps: ", bzn.accessIpsDeny.Deny)
     }
-    fmt.Println("-----------------AccessIpsReload accessIps: ", bzn.accessIpsDeny.Deny)
     return nil
 }
 

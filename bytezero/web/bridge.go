@@ -58,3 +58,22 @@ type AccessIpsForbidAction struct {
 func (a AccessIpsForbidAction) Check() bool {
     return a.IP != ""
 }
+
+const AccessIpsReloadAllow = "ips.allow"
+const AccessIpsReloadDeny = "ips.deny"
+
+// AccessIpsReloadAction -
+type AccessIpsReloadAction struct {
+    Config string `form:"config" json:"config" xml:"config" bson:"config" binding:"required"`
+}
+
+// check -
+func (a AccessIpsReloadAction) Check() bool {
+    return a.Config == AccessIpsReloadAllow || a.Config == AccessIpsReloadDeny
+}
+
+// Allow -
+func (a AccessIpsReloadAction) Allow() bool {
+    return a.Config == AccessIpsReloadAllow
+}
+

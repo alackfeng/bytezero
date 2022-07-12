@@ -211,7 +211,20 @@ func (gw *GinWeb) HandleBridgeAccessIpsForbid(c *gin.Context) {
 // http://192.168.90.162:7790/api/v1/bridge/accessips/reload
 func (gw *GinWeb) HandleBridgeAccessIpsReload(c *gin.Context) {
     result := bzweb.NewActionResult()
-    if err := gw.bzn.AccessIpsReload(); err != nil {
+    accessIpsReloadAction := &bzweb.AccessIpsReloadAction{}
+    if c.Request.Method == http.MethodPost {
+        if err := c.ShouldBindJSON(accessIpsReloadAction); err != nil {
+            result.Set(bzweb.ErrCode_error, err.Error())
+        }
+    } else if c.Request.Method == http.MethodGet {
+        if err := c.ShouldBindQuery(accessIpsReloadAction); err != nil {
+            result.Set(bzweb.ErrCode_error, err.Error())
+        }
+    }
+
+    if !accessIpsReloadAction.Check() {
+        result.Set(bzweb.ErrCode_error, "nil")
+    } else if err := gw.bzn.AccessIpsReload(accessIpsReloadAction.Allow()); err != nil {
         result.Set(bzweb.ErrCode_success, err.Error())
     }
     c.JSONP(http.StatusOK, result)
