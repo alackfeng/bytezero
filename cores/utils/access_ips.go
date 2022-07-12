@@ -41,11 +41,12 @@ func (a *AccessIpsDeny) Load(accessIpFile string) error {
         return err
     }
     defer f.Close()
+    a.Deny = make(map[string]bool)
     return yaml.NewDecoder(f).Decode(a)
 }
 
 // Upload -
-func (a *AccessIpsDeny) Upload(accessIpFile string, ip string) error {
+func (a *AccessIpsDeny) Upload(accessIpFile string, ip string, deny bool) error {
     if accessIpFile == "" {
         fmt.Println("AccessIpsDeny::Upload accessIpFile is nil.")
         return nil
@@ -57,10 +58,18 @@ func (a *AccessIpsDeny) Upload(accessIpFile string, ip string) error {
         return err
     }
 
-    a.Deny[ip] = true // add one.
+    // 已经存在不更新，需要手动修改配置并重启.
+    if denyIp, ok := a.Deny[ip]; ok {
+        fmt.Println("----------AccessIpsDeny ok, denyIp ", ip, denyIp, deny)
+        // if denyIp == deny {
+            return nil
+        // }
+    }
+    fmt.Println("----------AccessIpsDeny add ", ip, deny)
+    a.Deny[ip] = deny // add one.
 
     writer := bufio.NewWriter(f)
-    writer.WriteString(fmt.Sprintf("  %s: true\n", ip))
+    writer.WriteString(fmt.Sprintf("  %s: %v\n", ip, deny))
     writer.Flush()
     f.Close()
     return nil

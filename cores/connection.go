@@ -176,7 +176,7 @@ func (c *Connection) handleRecevier() error {
             if err == protocol.ErrNoFixedMe || err == protocol.ErrNoMethodType {
                 logbz.Errorln("Connection handleRecevier - Unmarshal error.", err.Error())
                 if host, _, err := net.SplitHostPort(c.RemoteAddr().String()); err == nil {
-                    c.bzn.AccessIpsForbid(host, false)
+                    c.bzn.AccessIpsForbid(host, true)
                 }
                 return err
             }

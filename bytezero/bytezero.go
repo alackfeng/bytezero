@@ -23,7 +23,8 @@ type BZNet interface {
     // access ips.
     AccessIpsAllow(ip string) error
     AccessIpsDeny(ip string) error
-    AccessIpsForbid(ip string, allow bool) error
+    AccessIpsForbid(ip string, deny bool) error
+    AccessIpsReload() error
 
     // credential.
     AppID() string

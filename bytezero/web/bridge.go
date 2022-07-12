@@ -45,3 +45,16 @@ func (c CredentialUrlResult) Get(i int) CredentialURL {
     }
     return c[i]
 }
+
+
+
+// AccessIpsForbidAction -
+type AccessIpsForbidAction struct {
+    IP string `form:"ip" json:"ip" xml:"ip" bson:"ip" binding:"required"`
+    Deny int `form:"forbid" json:"forbid" xml:"forbid" bson:"forbid" binding:"required"`
+}
+
+// check -
+func (a AccessIpsForbidAction) Check() bool {
+    return a.IP != ""
+}
