@@ -94,7 +94,7 @@ func (c *Connection) Quit() {
     c.quit = true
 }
 
-// String - 
+// String -
 func (c Connection) String() string {
     return fmt.Sprintf("Connection#[SessionId<%s>, DeviceId<%s>, Addr<%v>]", c.SessionId, c.DeviceId, c.RemoteAddr())
 }
@@ -159,6 +159,11 @@ func (c *Connection) handleRecevier() error {
         if c.quit == true {
             break
         }
+
+        // if err := c.SetReadDeadline(time.Now().Add(time.Second*30)); err != nil {
+        //     logbz.Errorln("Connection::handleRecevier - SetReadDeadline err.", err.Error())
+        //     return err
+        // }
 
         if _, err := c.BufferRead.Read(func(b []byte) (int, error) {
             return c.Conn.Read(b)
