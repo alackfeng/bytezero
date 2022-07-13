@@ -214,7 +214,10 @@ func (c *CommonPt) Unmarshal(buf []byte) error {
     if i + int(c.Length) > l {
         return ErrNoPayload
     }
-    c.Payload = buf[i:i+int(c.Length)]
+    if c.Payload == nil {
+        c.Payload = make([]byte, c.Length)
+    }
+    ByteCopy(c.Payload, 0, buf[i:i+int(c.Length)], 0)
     return nil
 }
 

@@ -20,7 +20,7 @@ func NewBufferRead(l int) *BufferRead {
         maxBufferLen: l,
         buffer: make([]byte, l),
         needRead: true,
-        Secret: true,
+        Secret: false,
     }
 }
 

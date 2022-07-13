@@ -94,8 +94,9 @@ func (c *Connection) Quit() {
     c.quit = true
 }
 
+// String - 
 func (c Connection) String() string {
-    return fmt.Sprintf("Connection#[SessionId<%s>, DeviceId<%s>]", c.SessionId, c.DeviceId)
+    return fmt.Sprintf("Connection#[SessionId<%s>, DeviceId<%s>, Addr<%v>]", c.SessionId, c.DeviceId, c.RemoteAddr())
 }
 
 
@@ -196,7 +197,7 @@ func (c *Connection) handleRecevier() error {
             c.durationMs = utils.NowDiff(int64(out.Timestamp)).Milliseconds()
         }
         ms := utils.Abs(utils.NowDiff(int64(out.Timestamp)).Milliseconds() - c.durationMs)
-        if ms > 3000 {
+        if ms > 10000 {
             fmt.Printf("Connection.handleRecevier - out %v, dura: %d(%d) ms, ts: %v, %v\n", out.Type, ms, c.durationMs,
                 utils.MsFormat(int64(out.Timestamp)), utils.MsFormat(time.Now().UnixMilli()))
         }
