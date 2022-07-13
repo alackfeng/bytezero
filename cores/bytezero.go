@@ -322,6 +322,20 @@ func (bzn *BytezeroNet) HandlePt(conn bz.BZNetReceiver, commonPt *protocol.Commo
         if c, ok := conn.(*Connection); ok {
             channId := c.ChannId()
             if channel, ok := bzn.channels[channId]; ok {
+		/* if commonPt.Type == protocol.Method_STREAM_DATA {
+                    streamDataPb := &protocol.StreamDataPt{}
+                    if err := commonPt.UnmarshalP(streamDataPb); err != nil {
+                        fmt.Println("------- streamDataPb ", err.Error())
+                    }
+                    l := len(streamDataPb.Data) - 32
+                    fmd5 := utils.GenMD5(string(streamDataPb.Data[0:l]))
+                    fmd52 := string(streamDataPb.Data[l:len(streamDataPb.Data)])
+                    if fmd5 != fmd52 {
+                        fmt.Println("-------------error md5 ", streamDataPb.Total, streamDataPb.Offset, streamDataPb.Timestamp, fmd5, fmd52)
+                    } else {
+                        // fmt.Println("-------------md5 ", streamDataPb.Total, streamDataPb.Offset, streamDataPb.Timestamp, fmd5, fmd52)
+                    }
+                } */
                 buf, err := commonPt.Marshal()
                 if err != nil {
                     break
