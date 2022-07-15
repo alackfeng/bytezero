@@ -6,16 +6,18 @@ GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
 
+
 # Binary names
-BINARY_NAME=bytezero
+BINARY_EXE=$(shell go env GOEXE)
+BINARY_NAME=bytezero$(BINARY_EXE)
 BINARY_PACKPB=bytezeroPackPb
 BINARY_ANALYSE=analyse
 
 
 all: build
 
-.PHONY: bytezero
-bytezero:
+.PHONY: bytezeroPackPb
+bytezeroPackPb:
 	$(GOBUILD) -o bin/$(BINARY_PACKPB) -v main.go
 
 .PHONY: bytezero
