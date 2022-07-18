@@ -24,11 +24,12 @@ import (
 )
 
 func main() {
-if bytezero.IsDaemon() {
-    if err := bytezero.Daemon(); err != nil {
-        fmt.Println("bytezero Daemon:", err.Error())
-        os.Exit(1)
+    fmt.Println(">>>>>bytezero main: pid", os.Getpid())
+    if bytezero.IsDaemon() {
+        if err := bytezero.Daemon(); err != nil {
+            fmt.Println("bytezero Daemon:", err.Error())
+            os.Exit(1)
+        }
     }
-}
     cmd.Execute()
 }

@@ -12,24 +12,31 @@ func IsDaemon() bool {
     daemon := false
     for k, v := range args {
         if v == "--daemon" {
-	    daemon = true
-	    args[k] = ""
-	}
+            daemon = true
+            args[k] = ""
+        }
     }
     return daemon
 }
 
+const BYTEZERO_DAEMON = "BYTEZERO_DAEMON"
 // Daemon -
 func Daemon() error {
-    cmdName := os.Args[0]
-    cmdArgs := os.Args[1:]
-    fmt.Println(cmdName, cmdArgs, " .")
-    cmd := exec.Command(cmdName, cmdArgs...)
+    if os.Getenv(BYTEZERO_DAEMON) == "1" {
+        return nil
+    }
+    path := os.Args[0]
+    args := os.Args[1:]
+    fmt.Println(path, args, " .")
+    cmd := exec.Command(path, args...)
+    cmd.Stdout = os.Stdout
+    cmd.Stderr = os.Stderr
+    cmd.Env = append(os.Environ(), fmt.Sprintf("%s=%s", BYTEZERO_DAEMON, "1"))
     err := cmd.Start()
     if err != nil {
         return err
     }
     fmt.Println("bytezero Daemon mode, process id ", cmd.Process.Pid)
-    os.Exit(0)
+    os.Exit(0) // quit parent process.
     return nil
 }
