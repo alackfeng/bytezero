@@ -88,13 +88,13 @@ func (bzn *BytezeroNet) MargicV() (byte, bool) {
 
 // SystemRestart -
 func (bzn *BytezeroNet) SystemRestart() error {
-    syscall.Kill(syscall.Getppid(), syscall.SIGHUP)
+    syscall.Kill(syscall.Getpid(), syscall.SIGHUP)
     return nil
 }
 
 // SystemStop -
 func (bzn *BytezeroNet) SystemStop() error {
-    syscall.Kill(syscall.Getppid(), syscall.SIGTERM)
+    syscall.Kill(syscall.Getpid(), syscall.SIGTERM)
     return nil
 }
 
@@ -107,13 +107,14 @@ func (bzn *BytezeroNet) SystemReload() error {
 func (bzn *BytezeroNet) Main() {
     logbz.Debugln("BytezeroNet Main...")
 
-    // SWG.Add(1)
-    // go bzn.StartTls()
     SWG.Add(1)
     go bzn.StartWeb()
 
     SWG.Add(1)
     go bzn.StartTcp()
+
+    SWG.Add(1)
+    go bzn.StartTls()
 }
 
 // Quit -
@@ -172,7 +173,8 @@ func (bzn *BytezeroNet) StartTls() {
         return
     }
     bzn.tl = server.NewTlsServer(bzn, config.App.Tls.Address(), config.App.Tls.CaCert, config.App.Tls.CaKey)
-    err := bzn.tl.Listen()
+    // err := bzn.tl.Listen()
+    err := bzn.tl.Start()
     if err != nil {
         logbz.Errorln("BytezeroNet.StartTls.Listen error.%v.", err.Error())
         bzn.done <- true

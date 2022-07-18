@@ -32,7 +32,7 @@ func NewTlsServer(bzn bz.BZNet, address string, certFile, keyFile string) *TlsSe
 // Serve -
 func (t *TlsServer) Serve(l net.Listener) (err error) {
     for {
-        conn, err := l.(*net.TCPListener).AcceptTCP()
+        conn, err := l.Accept()
         if err != nil {
             logsv.Debugln("TlsServer Listen error %v.", err.Error())
             break

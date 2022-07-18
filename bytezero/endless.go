@@ -387,7 +387,7 @@ func (srv *endlessServer) getListener(laddr string) (l net.Listener, err error) 
 			return
 		}
 	} else {
-		l, err = net.Listen("tcp", laddr)
+	    	l, err = net.Listen("tcp", laddr)
 		if err != nil {
 			err = fmt.Errorf("net.Listen error: %v", err)
 			return
@@ -580,7 +580,11 @@ func (el *endlessListener) Accept() (c net.Conn, err error) {
 	}
 
 	tc.SetKeepAlive(true)                  // see http.tcpKeepAliveListener
-	tc.SetKeepAlivePeriod(3 * time.Minute) // see http.tcpKeepAliveListener
+	if el.server.Scheme == "tcp" || el.server.Scheme == "tls" {
+		tc.SetKeepAlivePeriod(30 * time.Minute) // see http.tcpKeepAliveListener
+	} else {
+		tc.SetKeepAlivePeriod(3 * time.Minute) // see http.tcpKeepAliveListener
+	}
 
 	c = endlessConn{
 		Conn:   tc,

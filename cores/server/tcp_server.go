@@ -35,7 +35,7 @@ func NewTcpServer(bzn bz.BZNet, address string, maxBufferLen int, rwBufferLen in
 // Serve -
 func (t *TcpServer) Serve(l net.Listener) (err error) {
     for {
-        conn, err := l.(*net.TCPListener).AcceptTCP()
+        conn, err := l.Accept()
         if err != nil {
             logsv.Debugln("TcpServer Listen error %v.", err.Error())
             break
