@@ -17,6 +17,8 @@ import (
 
 var logbz = utils.Logger(utils.Fields{"animal": "main"})
 
+// SWG -
+var SWG = sync.WaitGroup{}
 
 // BytezeroNet - BytezeroNet
 type BytezeroNet struct {
@@ -104,15 +106,25 @@ func (bzn *BytezeroNet) SystemReload() error {
 // Main -
 func (bzn *BytezeroNet) Main() {
     logbz.Debugln("BytezeroNet Main...")
+    SWG.Add(1)
     go bzn.StartTcp()
-    go bzn.StartWeb()
+    SWG.Add(1)
     go bzn.StartTls()
+    SWG.Add(2)
+    go bzn.StartWeb()
 }
 
 // Quit -
 func (bzn *BytezeroNet) Quit() bool {
     logbz.Debugln("BytezeroNet maybe quit...")
     return true
+}
+
+// Wait -
+func (bzn *BytezeroNet) Wait() {
+    logbz.Warnln("BytezeroNet::Wait -.")
+    SWG.Wait()
+    logbz.Warnln("BytezeroNet::Wait - over.")
 }
 
 // StartWeb -
@@ -129,6 +141,9 @@ func (bzn *BytezeroNet) StartWeb() {
     }
     bzn.gw.SetStaticInfo(config.App.Web.Static.Memory, config.App.Web.Static.LogPath, config.App.Web.Static.UploadPath)
     bzn.gw.Start()
+    SWG.Done()
+    SWG.Done()
+    logbz.Warnln("BytezeroNet::StartWeb - done.")
 }
 // StartTcp -
 func (bzn *BytezeroNet) StartTcp() {
@@ -136,13 +151,14 @@ func (bzn *BytezeroNet) StartTcp() {
     if !config.App.Server.UP {
         return
     }
-    tcpServer := server.NewTcpServer(bzn, config.App.Server.Address(), config.App.MaxBufferLen, config.App.RWBufferLen)
-    err := tcpServer.Listen()
+    bzn.ts = server.NewTcpServer(bzn, config.App.Server.Address(), config.App.MaxBufferLen, config.App.RWBufferLen)
+    err := bzn.ts.Listen()
     if err != nil {
         logbz.Errorln("BytezeroNet.StartTcp.Listen error.%v.", err.Error())
         bzn.done <- true
     }
-    bzn.ts = tcpServer
+    SWG.Done()
+    logbz.Warnln("BytezeroNet::StartTcp - done.")
 }
 
 // StartTls -
@@ -151,13 +167,14 @@ func (bzn *BytezeroNet) StartTls() {
     if !config.App.Tls.UP {
         return
     }
-    tlsServer := server.NewTlsServer(bzn, config.App.Tls.Address(), config.App.Tls.CaCert, config.App.Tls.CaKey)
-    err := tlsServer.Listen()
+    bzn.tl = server.NewTlsServer(bzn, config.App.Tls.Address(), config.App.Tls.CaCert, config.App.Tls.CaKey)
+    err := bzn.tl.Listen()
     if err != nil {
         logbz.Errorln("BytezeroNet.StartTls.Listen error.%v.", err.Error())
         bzn.done <- true
     }
-    bzn.tl = tlsServer
+    SWG.Done()
+    logbz.Warnln("BytezeroNet::StartTls - done.")
 }
 
 

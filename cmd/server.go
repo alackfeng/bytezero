@@ -19,8 +19,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/signal"
-	"syscall"
 
 	bze "github.com/alackfeng/bytezero/cores"
 	profile "github.com/alackfeng/bytezero/cores/utils"
@@ -38,7 +36,7 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("bytezero server called", daemonProc, bze.ConfigGlobal().App.LogPath)
+		fmt.Println("bytezero server called", daemonProc)
 
         profile.SetLogout(bze.ConfigGlobal().App.LogPath)
         profile.InitGC(100)
@@ -48,7 +46,6 @@ to quickly create a Cobra application.`,
 			return
 		}
 		defer stopFunc() // to be executed as late as possible
-
 
         maxBufferLen, _ := cmd.Flags().GetInt("max-buffer-len")
         rwBufferLen, _ := cmd.Flags().GetInt("rw-buffer-len")
@@ -63,43 +60,45 @@ to quickly create a Cobra application.`,
         caKey, _ := cmd.Flags().GetString("cakey")
 
         done := make(chan bool)
-		sigs := make(chan os.Signal, 1)
-        signal.Notify(sigs)
+		// sigs := make(chan os.Signal, 1)
+        // signal.Notify(sigs)
         ctx, cancel := context.WithCancel(context.Background())
         defer func() {
 			cancel()
-			close(sigs)
+			// close(sigs)
 			close(done)
 		}()
+        logcmd.Errorln("main begin...")
         bzn := bze.NewBytezeroNet(ctx, done)
         bze.ConfigSetServer(maxBufferLen, rwBufferLen, port, host, appid, appkey, margic)
         bze.ConfigSetTls(needTls, tlsPort, caCert, caKey)
         bzn.Main()
 
-        logcmd.Errorln("main listen...")
-		bQuit := false
-		for {
-			select {
-			case sig := <-sigs:
-				if sig == syscall.SIGTERM || sig == syscall.SIGINT {
-					logcmd.Warnln("main Catch Signal: ", sig)
-					bQuit = bzn.Quit()
-					// } else if sig == syscall.SIGURG {
-				} else {
-					if sig.String() == "child exited" || sig.String() == "urgent I/O condition" {
-					} else {
-						logcmd.Warnln("main Catch Signal - ", sig)
-					}
-				}
-			case d := <-done:
-				logcmd.Errorln("main done. ", d)
-				bQuit = true
-			}
+        logcmd.Errorln("main wait...")
+        bzn.Wait()
+		// bQuit := false
+		// for {
+		// 	select {
+		// 	case sig := <-sigs:
+		// 		if sig == syscall.SIGTERM || sig == syscall.SIGINT {
+		// 			logcmd.Warnln("main Catch Signal: ", sig)
+		// 			bQuit = bzn.Quit()
+		// 			// } else if sig == syscall.SIGURG {
+		// 		} else {
+		// 			if sig.String() == "child exited" || sig.String() == "urgent I/O condition" {
+		// 			} else {
+		// 				logcmd.Warnln("main Catch Signal - ", sig)
+		// 			}
+		// 		}
+		// 	case d := <-done:
+		// 		logcmd.Errorln("main done. ", d)
+		// 		bQuit = true
+		// 	}
 
-			if bQuit { // QUIT
-				break
-			}
-		}
+		// 	if bQuit { // QUIT
+		// 		break
+		// 	}
+		// }
 		logcmd.Errorln("main over...")
 	},
 }
