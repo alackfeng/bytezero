@@ -15,8 +15,18 @@ limitations under the License.
 */
 package main
 
-import "github.com/alackfeng/bytezero/cmd"
+import (
+	"fmt"
+	"os"
+
+	"github.com/alackfeng/bytezero/bytezero"
+	"github.com/alackfeng/bytezero/cmd"
+)
 
 func main() {
+    if err := bytezero.Daemon(); err != nil {
+        fmt.Println("bytezero Daemon:", err.Error())
+        os.Exit(1)
+    }
 	cmd.Execute()
 }
