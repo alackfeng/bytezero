@@ -10,10 +10,10 @@ import (
 func IsDaemon() bool {
     args := os.Args
     daemon := false
-    for k, v := range args {
+    for _, v := range args {
         if v == "--daemon" {
             daemon = true
-            args[k] = ""
+            break // args[k] = ""
         }
     }
     return daemon

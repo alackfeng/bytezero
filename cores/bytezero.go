@@ -106,11 +106,11 @@ func (bzn *BytezeroNet) SystemReload() error {
 // Main -
 func (bzn *BytezeroNet) Main() {
     logbz.Debugln("BytezeroNet Main...")
+    // SWG.Add(1)
+    // go bzn.StartTcp()
+    // SWG.Add(1)
+    // go bzn.StartTls()
     SWG.Add(1)
-    go bzn.StartTcp()
-    SWG.Add(1)
-    go bzn.StartTls()
-    SWG.Add(2)
     go bzn.StartWeb()
 }
 
@@ -138,6 +138,7 @@ func (bzn *BytezeroNet) StartWeb() {
     }
     if config.App.Web.Https.UP {
         bzn.gw.SetSecretTransport(config.App.Web.Https.Host, config.App.Web.Https.CaCert, config.App.Web.Https.CaKey)
+	SWG.Add(1)
     }
     bzn.gw.SetStaticInfo(config.App.Web.Static.Memory, config.App.Web.Static.LogPath, config.App.Web.Static.UploadPath)
     bzn.gw.Start()
