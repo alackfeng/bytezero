@@ -18,7 +18,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/alackfeng/bytezero/apps/tool"
+//	"github.com/alackfeng/bytezero/apps/tool"
+	"github.com/alackfeng/bytezero/cores/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -35,7 +36,13 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("tool called")
 
-        tool.NewAppsTool().Main()
+//        tool.NewAppsTool().Main()
+body := []byte(`{"data":{"phone":"18011721806","authCode":"123321","biz":"SealMiniCaptcha:login"}}`)
+        resp, err := utils.NewHttpClient().Post("http://120.25.216.247:3128/sms/sendSealAuthCode", body, "", "")
+        if err != nil {
+            fmt.Println("--------err ", err.Error())
+        }
+        fmt.Println("---------resp: ", string(resp))
 	},
 }
 
