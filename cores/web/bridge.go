@@ -36,8 +36,6 @@ func (gw *GinWeb) RouterBridge(grg *gin.RouterGroup) {
 	grg.GET(urlBridgeFilesList, gw.HandleBridgeFilesList)
 	grg.GET(urlBridgeLogsDownload, gw.HandleBridgeLogsDownload)
 	grg.GET(urlBridgeLogsList, gw.HandleBridgeLogsList)
-	grg.GET(urlBridgeAccessIpsForbid, gw.HandleBridgeAccessIpsForbid)
-    grg.GET(urlBridgeAccessIpsReload, gw.HandleBridgeAccessIpsReload)
 }
 
 
@@ -182,50 +180,3 @@ func (gw *GinWeb) HandleBridgeLogsDownload(c *gin.Context) {
 func (gw *GinWeb) HandleBridgeLogsList(c *gin.Context) {
 }
 
-
-// HandleBridgeAccessIpsForbid -
-// http://192.168.90.162:7790/api/v1/bridge/accessips/forbid?ip=192.168.90.162&forbid=1|2
-func (gw *GinWeb) HandleBridgeAccessIpsForbid(c *gin.Context) {
-    result := bzweb.NewActionResult()
-    accessIpsForbidAction := &bzweb.AccessIpsForbidAction{}
-    if c.Request.Method == http.MethodPost {
-        if err := c.ShouldBindJSON(accessIpsForbidAction); err != nil {
-            result.Set(bzweb.ErrCode_error, err.Error())
-        }
-    } else if c.Request.Method == http.MethodGet {
-        if err := c.ShouldBindQuery(accessIpsForbidAction); err != nil {
-            result.Set(bzweb.ErrCode_error, err.Error())
-        }
-    }
-
-    if !accessIpsForbidAction.Check() {
-        result.Set(bzweb.ErrCode_error, "nil")
-    } else if err := gw.bzn.AccessIpsForbid(accessIpsForbidAction.IP, accessIpsForbidAction.Deny == 1); err != nil {
-        result.Set(bzweb.ErrCode_success, err.Error())
-    }
-    c.JSONP(http.StatusOK, result)
-}
-
-
-// HandleBridgeAccessIpsForbid -
-// http://192.168.90.162:7790/api/v1/bridge/accessips/reload
-func (gw *GinWeb) HandleBridgeAccessIpsReload(c *gin.Context) {
-    result := bzweb.NewActionResult()
-    accessIpsReloadAction := &bzweb.AccessIpsReloadAction{}
-    if c.Request.Method == http.MethodPost {
-        if err := c.ShouldBindJSON(accessIpsReloadAction); err != nil {
-            result.Set(bzweb.ErrCode_error, err.Error())
-        }
-    } else if c.Request.Method == http.MethodGet {
-        if err := c.ShouldBindQuery(accessIpsReloadAction); err != nil {
-            result.Set(bzweb.ErrCode_error, err.Error())
-        }
-    }
-
-    if !accessIpsReloadAction.Check() {
-        result.Set(bzweb.ErrCode_error, "nil")
-    } else if err := gw.bzn.AccessIpsReload(accessIpsReloadAction.Allow()); err != nil {
-        result.Set(bzweb.ErrCode_success, err.Error())
-    }
-    c.JSONP(http.StatusOK, result)
-}

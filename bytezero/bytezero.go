@@ -32,6 +32,10 @@ type BZNet interface {
     CredentialExpiredMs() int64
     CredentialUrls() []string
     MargicV() (byte, bool) // MARGIC_SHIFT for transport secret.
+
+    SystemRestart() error
+    SystemStop() error
+    SystemReload() error
 }
 
 

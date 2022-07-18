@@ -149,6 +149,7 @@ func (gw *GinWeb) Routers() {
 	v1 := gw.Group("/api/v1")
 	{
 		gw.RouterBridge(v1)
+        gw.RouterAdmin(v1)
 	}
 
     gw.Use(favicon.New("./public/favicon.ico"))
@@ -210,9 +211,9 @@ func (gw *GinWeb) StartTls() {
 
     gw.Use(gw.TlsHandler())
     logweb.Println("Web.Start https://", gw.address, " , Start Now.")
-    gw.RunTLS(gw.address, gw.certFile, gw.keyFile)
+    // gw.RunTLS(gw.address, gw.certFile, gw.keyFile)
     // be gracefully terminated & restarted
-    // bz.ListenAndServeTLS(gw.address, gw.certFile, gw.keyFile, gw.Engine)
+    bz.ListenAndServeTLS(gw.address, gw.certFile, gw.keyFile, gw.Engine)
     logweb.Println("Web.Start https://", gw.address, " , Start Over.")
 }
 
@@ -233,9 +234,9 @@ func (gw *GinWeb) Start() {
         }
         logweb.Println("Web.Start http://", gw.host, " , Start Now.")
         host := gw.host
-        gw.Run(host)
+        // gw.Run(host)
         // be gracefully terminated & restarted
-        // bz.ListenAndServe(host, gw.Engine)
+        bz.ListenAndServe(host, gw.Engine)
         logweb.Println("Web.Start http://", gw.host, " , Start Over.")
     }
 }

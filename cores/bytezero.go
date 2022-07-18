@@ -6,6 +6,7 @@ import (
 	"net"
 	"regexp"
 	"sync"
+	"syscall"
 
 	bz "github.com/alackfeng/bytezero/bytezero"
 	"github.com/alackfeng/bytezero/bytezero/protocol"
@@ -81,6 +82,23 @@ func (bzn *BytezeroNet) CredentialUrls() []string {
 func (bzn *BytezeroNet) MargicV() (byte, bool) {
     config := ConfigGlobal()
     return byte(bz.MargicValue), config.App.Server.Margic
+}
+
+// SystemRestart -
+func (bzn *BytezeroNet) SystemRestart() error {
+    syscall.Kill(syscall.Getppid(), syscall.SIGHUP)
+    return nil
+}
+
+// SystemStop -
+func (bzn *BytezeroNet) SystemStop() error {
+    syscall.Kill(syscall.Getppid(), syscall.SIGTERM)
+    return nil
+}
+
+// SystemReload -
+func (bzn *BytezeroNet) SystemReload() error {
+    return nil
 }
 
 // Main -
