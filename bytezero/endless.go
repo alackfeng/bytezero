@@ -1,6 +1,7 @@
 package bytezero
 
 import (
+	"crypto/rand"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -79,13 +80,14 @@ type endlessServer struct {
 	state            uint8
 	lock             *sync.RWMutex
 	BeforeBegin      func(add string)
+    Scheme           string // http/https/tcp/tls
 }
 
 /*
 NewServer returns an intialized endlessServer Object. Calling Serve on it will
 actually "start" the server.
 */
-func NewServer(addr string, handler http.Handler) (srv *endlessServer) {
+func NewServer(addr string, handler http.Handler, scheme string) (srv *endlessServer) {
 	runningServerReg.Lock()
 	defer runningServerReg.Unlock()
 
@@ -131,6 +133,7 @@ func NewServer(addr string, handler http.Handler) (srv *endlessServer) {
 	srv.Server.WriteTimeout = DefaultWriteTimeOut
 	srv.Server.MaxHeaderBytes = DefaultMaxHeaderBytes
 	srv.Server.Handler = handler
+    srv.Scheme = scheme
 
 	srv.BeforeBegin = func(addr string) {
 		log.Println(syscall.Getpid(), addr)
@@ -142,13 +145,98 @@ func NewServer(addr string, handler http.Handler) (srv *endlessServer) {
 	return
 }
 
+// Handler -
+type Handler interface {
+    Serve(l net.Listener) (err error)
+}
+
+// ListenTCP - tcp.
+func ListenTCP(addr string, accept Handler) (err error) {
+    srv := NewServer(addr, nil, "tcp")
+
+	if addr == "" {
+		addr = ":tcp"
+    }
+
+	go srv.handleSignals()
+
+	l, err := srv.getListener(addr)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	srv.EndlessListener = newEndlessListener(l, srv)
+
+	if srv.isChild {
+		syscall.Kill(syscall.Getppid(), syscall.SIGTERM)
+	}
+
+	srv.BeforeBegin(srv.Addr)
+
+	defer log.Println(syscall.Getpid(), "Serve() returning...")
+	srv.setState(STATE_RUNNING)
+	err = accept.Serve(srv.EndlessListener)
+	log.Println(syscall.Getpid(), "Waiting for connections to finish...")
+	srv.wg.Wait()
+	srv.setState(STATE_TERMINATE)
+    return
+}
+
+// ListenTLS -
+func ListenTLS(addr string, certFile string, keyFile string, accept Handler) (err error) {
+    srv := NewServer(addr, nil, "tls")
+	if addr == "" {
+		addr = ":tls"
+	}
+
+	config := &tls.Config{
+        Time: time.Now,
+        Rand: rand.Reader,
+    }
+	if srv.TLSConfig != nil {
+		*config = *srv.TLSConfig
+	}
+
+	config.Certificates = make([]tls.Certificate, 1)
+	config.Certificates[0], err = tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		return
+	}
+
+	go srv.handleSignals()
+
+	l, err := srv.getListener(addr)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	srv.tlsInnerListener = newEndlessListener(l, srv)
+	srv.EndlessListener = tls.NewListener(srv.tlsInnerListener, config)
+
+	if srv.isChild {
+		syscall.Kill(syscall.Getppid(), syscall.SIGTERM)
+	}
+
+	log.Println(syscall.Getpid(), srv.Addr)
+
+	defer log.Println(syscall.Getpid(), "Serve() returning...")
+	srv.setState(STATE_RUNNING)
+	err = accept.Serve(srv.EndlessListener)
+	log.Println(syscall.Getpid(), "Waiting for connections to finish...")
+	srv.wg.Wait()
+	srv.setState(STATE_TERMINATE)
+    return
+}
+
 /*
 ListenAndServe listens on the TCP network address addr and then calls Serve
 with handler to handle requests on incoming connections. Handler is typically
 nil, in which case the DefaultServeMux is used.
 */
 func ListenAndServe(addr string, handler http.Handler) error {
-	server := NewServer(addr, handler)
+	server := NewServer(addr, handler, "http")
 	return server.ListenAndServe()
 }
 
@@ -160,7 +248,7 @@ certificate authority, the certFile should be the concatenation of the server's
 certificate followed by the CA's certificate.
 */
 func ListenAndServeTLS(addr string, certFile string, keyFile string, handler http.Handler) error {
-	server := NewServer(addr, handler)
+	server := NewServer(addr, handler, "https")
 	return server.ListenAndServeTLS(certFile, keyFile)
 }
 

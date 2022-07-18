@@ -32,6 +32,25 @@ func NewTcpServer(bzn bz.BZNet, address string, maxBufferLen int, rwBufferLen in
     }
 }
 
+// Serve -
+func (t *TcpServer) Serve(l net.Listener) (err error) {
+    for {
+        conn, err := l.(*net.TCPListener).AcceptTCP()
+        if err != nil {
+            logsv.Debugln("TcpServer Listen error %v.", err.Error())
+            break
+        }
+        logsv.Infof("TcpServer Accept Remote<%v> - Local<%v>.", conn.RemoteAddr().String(), conn.LocalAddr().String())
+        t.bzn.HandleConn(conn)
+    }
+    return nil
+}
+
+// Start -
+func (t *TcpServer) Start() error {
+    return bz.ListenTCP(t.address, t)
+}
+
 // Listen -
 func (t *TcpServer) Listen() error {
     var err error = nil

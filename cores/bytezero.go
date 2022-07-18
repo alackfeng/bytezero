@@ -106,12 +106,14 @@ func (bzn *BytezeroNet) SystemReload() error {
 // Main -
 func (bzn *BytezeroNet) Main() {
     logbz.Debugln("BytezeroNet Main...")
-    // SWG.Add(1)
-    // go bzn.StartTcp()
+
     // SWG.Add(1)
     // go bzn.StartTls()
     SWG.Add(1)
     go bzn.StartWeb()
+
+    SWG.Add(1)
+    go bzn.StartTcp()
 }
 
 // Quit -
@@ -153,7 +155,8 @@ func (bzn *BytezeroNet) StartTcp() {
         return
     }
     bzn.ts = server.NewTcpServer(bzn, config.App.Server.Address(), config.App.MaxBufferLen, config.App.RWBufferLen)
-    err := bzn.ts.Listen()
+    // err := bzn.ts.Listen()
+    err := bzn.ts.Start()
     if err != nil {
         logbz.Errorln("BytezeroNet.StartTcp.Listen error.%v.", err.Error())
         bzn.done <- true

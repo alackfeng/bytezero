@@ -3,6 +3,7 @@ package server
 import (
 	"crypto/rand"
 	"crypto/tls"
+	"net"
 	"time"
 
 	bz "github.com/alackfeng/bytezero/bytezero"
@@ -26,6 +27,25 @@ func NewTlsServer(bzn bz.BZNet, address string, certFile, keyFile string) *TlsSe
         certFile: certFile,
         keyFile: keyFile,
     }
+}
+
+// Serve -
+func (t *TlsServer) Serve(l net.Listener) (err error) {
+    for {
+        conn, err := l.(*net.TCPListener).AcceptTCP()
+        if err != nil {
+            logsv.Debugln("TlsServer Listen error %v.", err.Error())
+            break
+        }
+        logsv.Infof("TlsServer Accept Remote<%v> - Local<%v>.", conn.RemoteAddr().String(), conn.LocalAddr().String())
+        t.bzn.HandleConn(conn)
+    }
+    return nil
+}
+
+// Start -
+func (t *TlsServer) Start() error {
+    return bz.ListenTLS(t.address, t.certFile, t.keyFile, t)
 }
 
 // Listen -
