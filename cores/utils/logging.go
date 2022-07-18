@@ -59,18 +59,23 @@ func init() {
 
 // SetLogout -  设置日志输出位置.
 func SetLogout(path string) {
-
+    if len(path) < 3 {
+        return
+    }
 	if path[0:3] == "std" {
 		return
 	}
+
+    filepath.Ext(path)
 
 	logDir, err := filepath.Abs(filepath.Dir(path))
 	if err := os.MkdirAll(logDir, os.ModePerm); err != nil {
 		log.Fatal("SetLogout ERROR: ", err)
 	}
-	logFile, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0666)
+    fileName := filepath.Join(logDir, LogName(filepath.Base(path)))
+	logFile, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY, 0666)
 	if err == nil {
-		log.Info("SetLogout log path : ", filepath.Join(logDir, filepath.Base(path)))
+		log.Info("SetLogout log path : ", fileName)
 		log.Out = logFile
 	} else {
 		log.Info("Failed to log to file, using default stderr")

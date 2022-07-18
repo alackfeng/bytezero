@@ -38,8 +38,9 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("bytezero server called", daemonProc)
+		fmt.Println("bytezero server called", daemonProc, bze.ConfigGlobal().App.LogPath)
 
+        profile.SetLogout(bze.ConfigGlobal().App.LogPath)
         profile.InitGC(100)
         stopFunc, err := profile.ProfileIfEnabled()
 		if err != nil {
