@@ -1,0 +1,16 @@
+[Unit]
+Description=bytezerod
+After=syslog.target network.target remote-fs.target nss-lookup.target display-manager.service
+
+[Service]
+Type=forking
+ExecStart=/home/vagrant/bytezero-go/scripts/start_server.sh
+Restart=always
+RestartSec=5
+ExecReStart=/home/vagrant/bytezero-go/scripts/start_server.sh
+#ExecStop=/home/vagrant/bytezero-go/scripts/stop_server.sh
+#PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+
