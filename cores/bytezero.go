@@ -362,7 +362,7 @@ func (bzn *BytezeroNet) HandlePt(conn bz.BZNetReceiver, commonPt *protocol.Commo
         fallthrough
     case protocol.Method_STREAM_CLOSE:
         if c, ok := conn.(*Connection); ok {
-            bzn.l.Lock()
+            // bzn.l.Lock()
             channId := c.ChannId()
             if channel, ok := bzn.channels[channId]; ok {
 		/* if commonPt.Type == protocol.Method_STREAM_DATA {
@@ -381,7 +381,7 @@ func (bzn *BytezeroNet) HandlePt(conn bz.BZNetReceiver, commonPt *protocol.Commo
                 } */
                 buf, err := commonPt.Marshal()
                 if err != nil {
-                    bzn.l.Unlock()
+              //       bzn.l.Unlock()
                     break
                 }
                 channel.Transit(func(c1, c2 *Connection) error {
@@ -391,7 +391,7 @@ func (bzn *BytezeroNet) HandlePt(conn bz.BZNetReceiver, commonPt *protocol.Commo
                     return c1.Transit(buf)
                 })
             }
-            bzn.l.Unlock()
+            // bzn.l.Unlock()
         }
 
     default:
