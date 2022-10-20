@@ -18,6 +18,7 @@ cd D:\taurus\bitdisk\code\bytezero\bytezero
 cobra add server -t github.com/alackfeng/bytezero
 cobra add client -t github.com/alackfeng/bytezero
 cobra add tool -t github.com/alackfeng/bytezero
+cobra add flashsign -t github.com/alackfeng/bytezero
 
 #### 读取配置.
 
