@@ -30,7 +30,7 @@ func NewFlashSignApp() *FlashSignApp {
 		dbNameBaasSeal:   "baas_seal",
 		dbNameBaasReport: "baas_report",
 		currentDate:      currentDate,
-		revenue:          &RevenueDay{},
+		revenue:          &RevenueDay{currentDate: currentDate},
 		business:         &BusinessDay{currentDate: currentDate},
 	}
 }

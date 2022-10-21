@@ -3,6 +3,9 @@ package flashsign
 import (
 	"database/sql"
 	"fmt"
+	"time"
+
+	"github.com/alackfeng/bytezero/cores/utils"
 )
 
 // PaymodeWechat -
@@ -20,8 +23,9 @@ const (
 	PurchasePackageAmount100 = 100
 )
 
-// RevenueDay -
+// RevenueDay - 营收维度分析.
 type RevenueDay struct {
+	currentDate string  // 日期.
 	totalAmount float64 // 当日总收入.
 	stockCount  int     // 当日库存份数.
 	expendCount int     // 当日消耗份数.
@@ -220,6 +224,38 @@ func (f *FlashSignApp) RevenueDayPurchasePackage(amount int) (int, error) {
 	return count, nil
 }
 
+// RevenueInsert -
+func (f *FlashSignApp) RevenueInsert() error {
+	db, err := DBConnect(f.driverName, f.dbSourceUrlBaasReport(), 3)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	sqlQuery := "insert into t_report_revenue(currentDate, totalAmount, stockCount, expendCount, " +
+		"wechatTransAmount, wechatTransAccess, wechatTransCount, wechatRepurchaseAccess, wechatFirstPurchaseAccess, " +
+		"alipayTransAmount, alipayTransAccess, alipayTransCount, alipayRepurchaseAccess, alipayFirstPurchaseAccess, " +
+		"presentCount, purchasePackageAmount1, purchasePackageAmount5, purchasePackageAmount10, purchasePackageAmount50, purchasePackageAmount100, createTime) " +
+		"values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+	b := f.revenue
+	primaryKeyDateName := utils.FormatDate(b.currentDate)
+	res, err := db.Exec(sqlQuery, primaryKeyDateName, b.totalAmount, b.stockCount, b.expendCount,
+		b.wechatTransAmount, b.wechatTransAccess, b.wechatTransCount, b.wechatRepurchaseAccess, b.wechatFirstPurchaseAccess,
+		b.alipayTransAmount, b.alipayTransAccess, b.alipayTransCount, b.alipayRepurchaseAccess, b.alipayFirstPurchaseAccess,
+		b.presentCount, b.purchasePackageAmount1, b.purchasePackageAmount5, b.purchasePackageAmount10, b.purchasePackageAmount50, b.purchasePackageAmount100, time.Now(),
+	)
+	if err != nil {
+		fmt.Println("FlashSignApp.RevenueInsert - error", err.Error())
+		return err
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		fmt.Println("FlashSignApp.RevenueInsert - LastInsertId error", err.Error())
+		return err
+	}
+	fmt.Println("FlashSignApp.RevenueInsert - insert id ", id)
+	return nil
+}
+
 // Revenue - 营收维度分析.
 func (f *FlashSignApp) Revenue() {
 	f.RevenueDayTotalAmount()
@@ -237,4 +273,5 @@ func (f *FlashSignApp) Revenue() {
 	f.revenue.purchasePackageAmount10, _ = f.RevenueDayPurchasePackage(PurchasePackageAmount10)
 	f.revenue.purchasePackageAmount50, _ = f.RevenueDayPurchasePackage(PurchasePackageAmount50)
 	f.revenue.purchasePackageAmount100, _ = f.RevenueDayPurchasePackage(PurchasePackageAmount100)
+	f.RevenueInsert()
 }
