@@ -79,18 +79,24 @@ func NowMs() int64 {
 
 // Abs -
 func Abs(n int64) int64 {
-    y := n >> 63
-    return (n ^ y) - y
+	y := n >> 63
+	return (n ^ y) - y
 }
 
 // NowDiff - 当前时间差.
 func NowDiff(ts int64) time.Duration {
-    return time.Now().Sub(time.Unix(0, ts*1000000))
+	return time.Now().Sub(time.Unix(0, ts*1000000))
 }
 
 // TimestampFormat - ms format.
 func TimestampFormat(ts int64) string {
 	return time.Unix(0, ts*1000000).Format(time.RFC3339Nano)
+}
+
+// FormatDate -
+func FormatDate(d string) string {
+	currMs, _ := time.Parse("2006-01-02 00:00:00", d)
+	return fmt.Sprintf("%04d-%02d-%02d", currMs.Year(), currMs.Month(), currMs.Day())
 }
 
 // MsFormat - ms format.
@@ -113,8 +119,8 @@ func MsFormatFN(ts int64) string {
 
 // LogName -
 func LogName(label string) string {
-    currMs := time.Unix(0, NowMs()*1000000)
-    return fmt.Sprintf("%s_%02d-%02d-%02d_%02d-%02d-%02d.log", label, currMs.Year(), currMs.Month(), currMs.Day(), currMs.Hour(), currMs.Minute(), currMs.Second())
+	currMs := time.Unix(0, NowMs()*1000000)
+	return fmt.Sprintf("%s_%02d-%02d-%02d_%02d-%02d-%02d.log", label, currMs.Year(), currMs.Month(), currMs.Day(), currMs.Hour(), currMs.Minute(), currMs.Second())
 }
 
 // MsFormatDay - ms format day peroid.
@@ -198,4 +204,10 @@ func GenVerifyCode() string {
 	result, _ := rand.Int(rand.Reader, big.NewInt(time.Now().UnixNano()))
 	fmt.Fprintf(&sb, "%06d", result.Int64())
 	return sb.String()[0:6]
+}
+
+// CalcPercent - 计算百分比.
+func CalcPercent(count int, total int) float64 {
+	value, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", float64(count)/float64(total)), 64)
+	return value
 }
