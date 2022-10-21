@@ -16,6 +16,11 @@ func NewDuration() *Duration {
 	}
 }
 
+// Begin -
+func (d *Duration) Begin() string {
+	return time.Unix(0, d.curr).Format(time.RFC3339Nano)
+}
+
 // DuraMs - Ms间隔.
 func (d *Duration) DuraMs() int64 {
 	return (time.Now().UnixNano() - d.curr) / 1e6

@@ -65,27 +65,27 @@ func (b RevenueDay) String() string {
 }
 
 // RevenueDayTotalAmount - 当日总收入.
-func (f *FlashSignApp) RevenueDayTotalAmount() error {
-	sqlQuery := "SELECT SUM(price-dis_amount) as totalAmount FROM t_order where FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = ? and status = 2 "
-	err := f.db.QueryRow(sqlQuery, f.revenue.currentDate).Scan(&f.revenue.totalAmount)
+func (f *RevenueDay) RevenueDayTotalAmount(db *sql.DB) error {
+	sqlQuery := "SELECT IFNULL(SUM(price-dis_amount),0) as totalAmount FROM t_order where FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = ? and status = 2 "
+	err := db.QueryRow(sqlQuery, f.currentDate).Scan(&f.totalAmount)
 	if err != nil {
-		fmt.Println("FlashSignApp.RevenueDayTotalAmount - error.", err.Error())
+		fmt.Println("RevenueDay.RevenueDayTotalAmount - error.", err.Error())
 		return err
 	}
-	// fmt.Println("FlashSignApp.RevenueDayTotalAmount - totalAmount.", f.revenue.totalAmount)
+	// fmt.Println("RevenueDay.RevenueDayTotalAmount - totalAmount.", f.revenue.totalAmount)
 	return nil
 }
 
 // RevenueDayStockCount - 当日库存份数 : 当天统计过往用户已购买的套餐的待签署数量.
-func (f *FlashSignApp) RevenueDayStockCount() error {
-	currentDateEnd := utils.FormatNextDateMs(f.revenue.currentDate)
+func (f *RevenueDay) RevenueDayStockCount(db *sql.DB) error {
+	currentDateEnd := utils.FormatNextDateMs(f.currentDate)
 	sqlQuery := "SELECT IFNULL(SUM(count),0) as stockCount from t_bought_package where status = 0 and activity_type = 0 and expired_time > ? and create_time < ?; "
-	err := f.db.QueryRow(sqlQuery, currentDateEnd, currentDateEnd).Scan(&f.revenue.stockCount)
+	err := db.QueryRow(sqlQuery, currentDateEnd, currentDateEnd).Scan(&f.stockCount)
 	if err != nil {
-		fmt.Println("FlashSignApp.RevenueDayStockCount - error.", err.Error())
+		fmt.Println("RevenueDay.RevenueDayStockCount - error.", err.Error())
 		return err
 	}
-	// fmt.Println("FlashSignApp.RevenueDayStockCount - stockQuantity.", f.revenue.stockCount)
+	// fmt.Println("RevenueDay.RevenueDayStockCount - stockQuantity.", f.revenue.stockCount)
 	return nil
 }
 
@@ -95,10 +95,9 @@ type PackageDeductionKindCount struct {
 }
 
 // RevenueDayExpendCount - 当日消耗份数: 当日套餐抵扣0（划扣） -  撤回3（撤销划扣）.
-func (f *FlashSignApp) RevenueDayExpendCount() error {
-	sqlQuery := "SELECT SUM(amount) as count, package_deduction_kind as kind  from t_deduction_record WHERE FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = ? GROUP BY package_deduction_kind; "
-
-	rows, err := f.db.Query(sqlQuery, f.revenue.currentDate)
+func (f *RevenueDay) RevenueDayExpendCount(db *sql.DB) error {
+	sqlQuery := "SELECT IFNULL(SUM(amount),0) as count, package_deduction_kind as kind  from t_deduction_record WHERE FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = ? GROUP BY package_deduction_kind; "
+	rows, err := db.Query(sqlQuery, f.currentDate)
 	if err != nil {
 		fmt.Println("FlashSignApp.RevenueDayExpendCount - error.", err.Error())
 		return err
@@ -114,51 +113,51 @@ func (f *FlashSignApp) RevenueDayExpendCount() error {
 	}
 	if count, ok := packageDeduction[0]; ok {
 		if reduct, ok := packageDeduction[3]; ok {
-			f.revenue.expendCount = count - reduct
+			f.expendCount = count - reduct
 		} else {
-			f.revenue.expendCount = count
+			f.expendCount = count
 		}
 	}
-	// fmt.Println("FlashSignApp.RevenueDayExpendCount - expendCount.", f.revenue.expendCount)
+	// fmt.Println("RevenueDay.RevenueDayExpendCount - expendCount.", f.revenue.expendCount)
 	return nil
 }
 
 // RevenueDayWechatTrans - 微信当日交易金额 微信当日交易用户 微信当日交易笔数.
-func (f *FlashSignApp) RevenueDayWechatTrans(paymode int) error {
+func (f *RevenueDay) RevenueDayWechatTrans(db *sql.DB, paymode int) error {
 	sqlQuery := "SELECT IFNULL(SUM(price-dis_amount),0) as wechatTransAmount, IFNULL(COUNT(DISTINCT access_id),'') as wechatTransAccess, IFNULL(COUNT(1),0) as wechatTransCount FROM `t_order` where FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = ? and `status` = 2 and pay_method=?; "
 	var err error
 	if paymode == PaymodeAliPay {
-		err = f.db.QueryRow(sqlQuery, f.revenue.currentDate, paymode).Scan(&f.revenue.alipayTransAmount, &f.revenue.alipayTransAccess, &f.revenue.alipayTransCount)
+		err = db.QueryRow(sqlQuery, f.currentDate, paymode).Scan(&f.alipayTransAmount, &f.alipayTransAccess, &f.alipayTransCount)
 	} else {
-		err = f.db.QueryRow(sqlQuery, f.revenue.currentDate, paymode).Scan(&f.revenue.wechatTransAmount, &f.revenue.wechatTransAccess, &f.revenue.wechatTransCount)
+		err = db.QueryRow(sqlQuery, f.currentDate, paymode).Scan(&f.wechatTransAmount, &f.wechatTransAccess, &f.wechatTransCount)
 	}
 	if err != nil {
-		fmt.Println("FlashSignApp.RevenueDayWechatTrans - error.", err.Error())
+		fmt.Println("RevenueDay.RevenueDayWechatTrans - error.", err.Error())
 		return err
 	}
 	// if paymode == PaymodeAliPay {
-	// 	fmt.Println("FlashSignApp.RevenueDayWechatTrans - alipayTrans.", f.revenue.alipayTransAmount, f.revenue.alipayTransAccess, f.revenue.alipayTransCount)
+	// 	fmt.Println("RevenueDay.RevenueDayWechatTrans - alipayTrans.", f.revenue.alipayTransAmount, f.revenue.alipayTransAccess, f.revenue.alipayTransCount)
 	// } else {
-	// 	fmt.Println("FlashSignApp.RevenueDayWechatTrans - wechatTrans.", f.revenue.wechatTransAmount, f.revenue.wechatTransAccess, f.revenue.wechatTransCount)
+	// 	fmt.Println("RevenueDay.RevenueDayWechatTrans - wechatTrans.", f.revenue.wechatTransAmount, f.revenue.wechatTransAccess, f.revenue.wechatTransCount)
 	// }
 	return nil
 }
 
 // RevenueDayWechatRepurchaseAccess - 微信日复购用户.
-func (f *FlashSignApp) RevenueDayWechatRepurchaseAccess(paymode int) error {
-	sqlQuery := "SELECT COUNT(1) as repurchaseAccess from (SELECT COUNT(access_id) as access_ids FROM t_order where FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = ? and status = 2 and pay_method=? GROUP BY access_id) t where t.access_ids>1; "
+func (f *RevenueDay) RevenueDayWechatRepurchaseAccess(db *sql.DB, paymode int) error {
+	sqlQuery := "SELECT IFNULL(COUNT(1),0) as repurchaseAccess from (SELECT COUNT(access_id) as access_ids FROM t_order where FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = ? and status = 2 and pay_method=? GROUP BY access_id) t where t.access_ids>1; "
 	var access int
-	err := f.db.QueryRow(sqlQuery, f.revenue.currentDate, paymode).Scan(&access)
+	err := db.QueryRow(sqlQuery, f.currentDate, paymode).Scan(&access)
 	if err != nil {
-		fmt.Println("FlashSignApp.RevenueDayWechatRepurchaseAccess - error.", err.Error())
+		fmt.Println("RevenueDay.RevenueDayWechatRepurchaseAccess - error.", err.Error())
 		return err
 	}
 	if paymode == PaymodeAliPay {
-		f.revenue.alipayRepurchaseAccess = access
-		// fmt.Println("FlashSignApp.RevenueDayWechatRepurchaseAccess - alipayRepurchaseAccess.", f.revenue.alipayRepurchaseAccess)
+		f.alipayRepurchaseAccess = access
+		// fmt.Println("RevenueDay.RevenueDayWechatRepurchaseAccess - alipayRepurchaseAccess.", f.revenue.alipayRepurchaseAccess)
 	} else {
-		f.revenue.wechatRepurchaseAccess = access
-		// fmt.Println("FlashSignApp.RevenueDayWechatRepurchaseAccess - repurchaseAccess.", f.revenue.wechatRepurchaseAccess)
+		f.wechatRepurchaseAccess = access
+		// fmt.Println("RevenueDay.RevenueDayWechatRepurchaseAccess - repurchaseAccess.", f.revenue.wechatRepurchaseAccess)
 	}
 	return nil
 }
@@ -170,9 +169,9 @@ type FirstPurchaseAccess struct {
 }
 
 // RevenueDayWechatFirstPurchaseAccess - 微信日新购用户 - 微信平台首次购买的记录（程序实现：先建立首次购买表按平台，在查找是否存在购买）.
-func (f *FlashSignApp) RevenueDayWechatFirstPurchaseAccess(paymode int) error {
+func (f *RevenueDay) RevenueDayWechatFirstPurchaseAccess(db *sql.DB, paymode int) error {
 	sqlQuery := "SELECT DISTINCT access_id as accessId FROM `t_order` where FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = ? and `status` = 2 and pay_method=? GROUP BY access_id;  "
-	rows, err := f.db.Query(sqlQuery, f.revenue.currentDate, paymode)
+	rows, err := db.Query(sqlQuery, f.currentDate, paymode)
 	if err != nil {
 		fmt.Println("FlashSignApp.RevenueDayWechatFirstPurchaseAccess - error.", err.Error())
 		return err
@@ -185,13 +184,13 @@ func (f *FlashSignApp) RevenueDayWechatFirstPurchaseAccess(paymode int) error {
 			return err
 		}
 		sqlQueryo := "SELECT access_id from t_order where access_id = ? and FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') <> ? and pay_method=? LIMIT 0,1;"
-		err := f.db.QueryRow(sqlQueryo, res.accessId, f.revenue.currentDate, paymode).Scan(&res.exist)
+		err := db.QueryRow(sqlQueryo, res.accessId, f.currentDate, paymode).Scan(&res.exist)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				count++
 				continue
 			}
-			fmt.Println("FlashSignApp.RevenueDayWechatFirstPurchaseAccess - error.", err.Error())
+			fmt.Println("RevenueDay.RevenueDayWechatFirstPurchaseAccess - error.", err.Error())
 			return err
 		}
 		if res.exist == "" {
@@ -199,100 +198,100 @@ func (f *FlashSignApp) RevenueDayWechatFirstPurchaseAccess(paymode int) error {
 		}
 	}
 	if paymode == PaymodeAliPay {
-		f.revenue.alipayFirstPurchaseAccess = count
-		// fmt.Println("FlashSignApp.RevenueDayWechatFirstPurchaseAccess - alipayFirstPurchaseAccess.", f.revenue.wechatFirstPurchaseAccess)
+		f.alipayFirstPurchaseAccess = count
+		// fmt.Println("RevenueDay.RevenueDayWechatFirstPurchaseAccess - alipayFirstPurchaseAccess.", f.revenue.wechatFirstPurchaseAccess)
 	} else {
-		f.revenue.wechatFirstPurchaseAccess = count
-		// fmt.Println("FlashSignApp.RevenueDayWechatFirstPurchaseAccess - wechatFirstPurchaseAccess.", f.revenue.wechatFirstPurchaseAccess)
+		f.wechatFirstPurchaseAccess = count
+		// fmt.Println("RevenueDay.RevenueDayWechatFirstPurchaseAccess - wechatFirstPurchaseAccess.", f.revenue.wechatFirstPurchaseAccess)
 	}
 
 	return nil
 }
 
 // RevenueDayPresentCount - 赠送份数.
-func (f *FlashSignApp) RevenueDayPresentCount() error {
+func (f *RevenueDay) RevenueDayPresentCount(db *sql.DB) error {
 	sqlQuery := "SELECT IFNULL(SUM(amount), 0) as presentCount from t_bought_package where FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = ? and activity_type=1; "
-	err := f.db.QueryRow(sqlQuery, f.revenue.currentDate).Scan(&f.revenue.presentCount)
+	err := db.QueryRow(sqlQuery, f.currentDate).Scan(&f.presentCount)
 	if err != nil {
-		fmt.Println("FlashSignApp.RevenueDayPresentCount - error.", err.Error())
+		fmt.Println("RevenueDay.RevenueDayPresentCount - error.", err.Error())
 		return err
 	}
-	fmt.Println("FlashSignApp.RevenueDayPresentCount - presentCount.", f.revenue.presentCount)
+	// fmt.Println("RevenueDay.RevenueDayPresentCount - presentCount.", f.presentCount)
 	return nil
 }
 
 // RevenueDayPurchasePackage - 购买单份套餐次数	购买5份套餐次数	购买10份套餐次数	购买50份套餐次数	购买100份套餐次数.
-func (f *FlashSignApp) RevenueDayPurchasePackage(amount int) (int, error) {
+func (f *RevenueDay) RevenueDayPurchasePackage(db *sql.DB, amount int) (int, error) {
 	sqlQuery := "SELECT IFNULL(count(1),0) from t_bought_package where FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = ? and activity_type=0 and amount=?; "
 	var count int
-	err := f.db.QueryRow(sqlQuery, f.revenue.currentDate, amount).Scan(&count)
+	err := db.QueryRow(sqlQuery, f.currentDate, amount).Scan(&count)
 	if err != nil {
-		fmt.Println("FlashSignApp.RevenueDayPurchasePackage - error.", err.Error())
+		fmt.Println("RevenueDay.RevenueDayPurchasePackage - error.", err.Error())
 		return 0, err
 	}
-	// fmt.Println("FlashSignApp.RevenueDayPurchasePackage - purchasePackage.", amount, "=>", count)
+	// fmt.Println("RevenueDay.RevenueDayPurchasePackage - purchasePackage.", amount, "=>", count)
 	return count, nil
 }
 
 // RevenueRemove -
-func (f *FlashSignApp) RevenueRemove() error {
-	primaryKeyDateName := utils.FormatDate(f.revenue.currentDate)
+func (f *RevenueDay) RevenueRemove(reportDb *sql.DB) error {
+	primaryKeyDateName := utils.FormatDate(f.currentDate)
 	sqlQuery := "delete from t_report_revenue where currentDate = ?; "
-	res, err := f.reportDb.Exec(sqlQuery, primaryKeyDateName)
+	_, err := reportDb.Exec(sqlQuery, primaryKeyDateName)
 	if err != nil {
-		fmt.Println("FlashSignApp.RevenueRemove - error", err.Error())
+		fmt.Println("RevenueDay.RevenueRemove - error", err.Error())
 		return err
 	}
-	count, _ := res.RowsAffected()
-	fmt.Println("FlashSignApp.RevenueRemove - delete rows: ", count)
+	// count, _ := res.RowsAffected()
+	// fmt.Println("RevenueDay.RevenueRemove - delete rows: ", count)
 	return nil
 }
 
 // RevenueInsert -
-func (f *FlashSignApp) RevenueInsert() error {
+func (b *RevenueDay) RevenueInsert(reportDb *sql.DB) error {
 	sqlQuery := "insert into t_report_revenue(currentDate, totalAmount, stockCount, expendCount, " +
 		"wechatTransAmount, wechatTransAccess, wechatTransCount, wechatRepurchaseAccess, wechatFirstPurchaseAccess, " +
 		"alipayTransAmount, alipayTransAccess, alipayTransCount, alipayRepurchaseAccess, alipayFirstPurchaseAccess, " +
 		"presentCount, purchasePackageAmount1, purchasePackageAmount5, purchasePackageAmount10, purchasePackageAmount50, purchasePackageAmount100, createTime) " +
 		"values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
-	b := f.revenue
 	primaryKeyDateName := utils.FormatDate(b.currentDate)
-	res, err := f.reportDb.Exec(sqlQuery, primaryKeyDateName, b.totalAmount, b.stockCount, b.expendCount,
+	res, err := reportDb.Exec(sqlQuery, primaryKeyDateName, b.totalAmount, b.stockCount, b.expendCount,
 		b.wechatTransAmount, b.wechatTransAccess, b.wechatTransCount, b.wechatRepurchaseAccess, b.wechatFirstPurchaseAccess,
 		b.alipayTransAmount, b.alipayTransAccess, b.alipayTransCount, b.alipayRepurchaseAccess, b.alipayFirstPurchaseAccess,
 		b.presentCount, b.purchasePackageAmount1, b.purchasePackageAmount5, b.purchasePackageAmount10, b.purchasePackageAmount50, b.purchasePackageAmount100, time.Now(),
 	)
 	if err != nil {
-		fmt.Println("FlashSignApp.RevenueInsert - error", err.Error())
+		fmt.Println("RevenueDay.RevenueInsert - error", err.Error())
 		return err
 	}
-	id, err := res.LastInsertId()
+	_, err = res.LastInsertId()
 	if err != nil {
-		fmt.Println("FlashSignApp.RevenueInsert - LastInsertId error", err.Error())
+		fmt.Println("RevenueDay.RevenueInsert - LastInsertId error", err.Error())
 		return err
 	}
-	fmt.Println("FlashSignApp.RevenueInsert - insert id ", id)
+	// fmt.Println("RevenueDay.RevenueInsert - insert id ", id)
 	return nil
 }
 
 // Revenue - 营收维度分析.
-func (f *FlashSignApp) Revenue() {
-	f.RevenueDayTotalAmount()
-	f.RevenueDayStockCount()
-	f.RevenueDayExpendCount()
-	f.RevenueDayWechatTrans(PaymodeWechat)
-	f.RevenueDayWechatRepurchaseAccess(PaymodeWechat)
-	f.RevenueDayWechatFirstPurchaseAccess(PaymodeWechat)
-	f.RevenueDayWechatTrans(PaymodeAliPay)
-	f.RevenueDayWechatRepurchaseAccess(PaymodeAliPay)
-	f.RevenueDayWechatFirstPurchaseAccess(PaymodeAliPay)
-	f.RevenueDayPresentCount()
-	f.revenue.purchasePackageAmount1, _ = f.RevenueDayPurchasePackage(PurchasePackageAmount1)
-	f.revenue.purchasePackageAmount5, _ = f.RevenueDayPurchasePackage(PurchasePackageAmount5)
-	f.revenue.purchasePackageAmount10, _ = f.RevenueDayPurchasePackage(PurchasePackageAmount10)
-	f.revenue.purchasePackageAmount50, _ = f.RevenueDayPurchasePackage(PurchasePackageAmount50)
-	f.revenue.purchasePackageAmount100, _ = f.RevenueDayPurchasePackage(PurchasePackageAmount100)
-	fmt.Println("FlashSignApp.Revenue - ", f.revenue)
-	f.RevenueRemove()
-	f.RevenueInsert()
+func (f *FlashSignApp) Revenue(lastDate string) {
+	o := &RevenueDay{currentDate: lastDate}
+	o.RevenueDayTotalAmount(f.db)
+	o.RevenueDayStockCount(f.db)
+	o.RevenueDayExpendCount(f.db)
+	o.RevenueDayWechatTrans(f.db, PaymodeWechat)
+	o.RevenueDayWechatRepurchaseAccess(f.db, PaymodeWechat)
+	o.RevenueDayWechatFirstPurchaseAccess(f.db, PaymodeWechat)
+	o.RevenueDayWechatTrans(f.db, PaymodeAliPay)
+	o.RevenueDayWechatRepurchaseAccess(f.db, PaymodeAliPay)
+	o.RevenueDayWechatFirstPurchaseAccess(f.db, PaymodeAliPay)
+	o.RevenueDayPresentCount(f.db)
+	o.purchasePackageAmount1, _ = o.RevenueDayPurchasePackage(f.db, PurchasePackageAmount1)
+	o.purchasePackageAmount5, _ = o.RevenueDayPurchasePackage(f.db, PurchasePackageAmount5)
+	o.purchasePackageAmount10, _ = o.RevenueDayPurchasePackage(f.db, PurchasePackageAmount10)
+	o.purchasePackageAmount50, _ = o.RevenueDayPurchasePackage(f.db, PurchasePackageAmount50)
+	o.purchasePackageAmount100, _ = o.RevenueDayPurchasePackage(f.db, PurchasePackageAmount100)
+	// fmt.Println("FlashSignApp.Revenue - ", o)
+	o.RevenueRemove(f.reportDb)
+	o.RevenueInsert(f.reportDb)
 }
