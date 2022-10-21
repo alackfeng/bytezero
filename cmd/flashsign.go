@@ -34,7 +34,8 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("flashsign called")
-		flashsign.NewFlashSignApp().Main()
+		lastReportDate, _ := cmd.Flags().GetString("last-report-date")
+		flashsign.NewFlashSignApp().Main(lastReportDate)
 	},
 }
 
@@ -50,4 +51,5 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// flashsignCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	flashsignCmd.Flags().StringP("last-report-date", "d", "", "t_report_dict.lastReportDate format, eg: 2021-12-08 00:00:00")
 }

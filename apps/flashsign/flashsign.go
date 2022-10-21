@@ -105,8 +105,19 @@ func FormatNextDate(d string, day int) (string, bool) {
 	return fmt.Sprintf("%04d-%02d-%02d 00:00:00", currMs.Year(), currMs.Month(), currMs.Day()), true
 }
 
+// CheckReportDate -
+func CheckReportDate(d string) (string, error) {
+	currMs, err := time.Parse("2006-01-02 00:00:00", d)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%04d-%02d-%02d 00:00:00", currMs.Year(), currMs.Month(), currMs.Day()), nil
+}
+
 // Main -
-func (f *FlashSignApp) Main() {
+// go run .\main.go flashsign .
+// go run .\main.go flashsign -d '2022-10-19 00:00:00' .
+func (f *FlashSignApp) Main(reportDate string) {
 	if err := f.init(); err != nil {
 		fmt.Printf("FlashSignApp.Main - error %v\n", err.Error())
 		return
@@ -114,30 +125,44 @@ func (f *FlashSignApp) Main() {
 
 	count := 0
 	bQuit := false
-	for {
-		if bQuit {
-			break
+	if reportDate != "" {
+		d, err := CheckReportDate(reportDate)
+		if err != nil {
+			fmt.Printf("FlashSignApp.Main - report date param <%s> error:%v\n.", reportDate, err.Error())
+		} else {
+			f.config.lastReportDate = d
+			dura := utils.NewDuration()
+			f.Revenue(f.config.lastReportDate)
+			f.Business(f.config.lastReportDate)
+			fmt.Printf("FlashSignApp.Main - execute task: %s, dura:[%v] %dms\n", f.config.lastReportDate, dura.Begin(), dura.DuraMs())
 		}
-		_, ok := FormatNextDate(f.config.lastReportDate, 1)
-		if !ok {
-			fmt.Println("FlashSignApp.Main - current time ", time.Now(), " overload ", f.config.lastReportDate)
-			break
+
+	} else {
+		for {
+			if bQuit {
+				break
+			}
+			_, ok := FormatNextDate(f.config.lastReportDate, 1)
+			if !ok {
+				fmt.Println("FlashSignApp.Main - current time ", time.Now(), " overload ", f.config.lastReportDate)
+				break
+			}
+			dura := utils.NewDuration()
+			f.Revenue(f.config.lastReportDate)
+			f.Business(f.config.lastReportDate)
+			fmt.Printf("FlashSignApp.Main - execute task: %s, dura:[%v] %dms\n", f.config.lastReportDate, dura.Begin(), dura.DuraMs())
+			d, ok := FormatNextDate(f.config.lastReportDate, 1)
+			if !ok {
+				fmt.Println("FlashSignApp.Main - current time ", time.Now(), " overload ", f.config.lastReportDate)
+				break
+			}
+			f.config.lastReportDate = d
+			f.config.updateLastReportDate(f.reportDb)
+			if count%100 == 0 {
+				time.Sleep(time.Millisecond * 50)
+			}
+			count++
 		}
-		dura := utils.NewDuration()
-		f.Revenue(f.config.lastReportDate)
-		f.Business(f.config.lastReportDate)
-		f.config.updateLastReportDate(f.reportDb)
-		fmt.Printf("FlashSignApp.Main - execute task: %s, dura:[%v] %dms\n", f.config.lastReportDate, dura.Begin(), dura.DuraMs())
-		d, ok := FormatNextDate(f.config.lastReportDate, 2)
-		if !ok {
-			fmt.Println("FlashSignApp.Main - current time ", time.Now(), " overload ", f.config.lastReportDate)
-			break
-		}
-		f.config.lastReportDate = d
-		if count%100 == 0 {
-			time.Sleep(time.Millisecond * 50)
-		}
-		count++
 	}
 
 	f.close()
