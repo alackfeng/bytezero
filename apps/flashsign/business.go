@@ -7,6 +7,20 @@ import (
 	"github.com/alackfeng/bytezero/cores/utils"
 )
 
+// ContractKind -
+const (
+	ContractKindCustom         = 0 // 自定义类合同.
+	ContractKindTemplate       = 1 // 模板类合同.
+	ContractKindTemplateLoan   = 2 // 模板类借贷类合同.
+	ContractKindTemplateNoLoan = 3 // 模板类非借贷类合同.
+)
+
+// Contract -
+type Contract struct {
+	kind  int
+	count int
+}
+
 // BusinessDay - 业务维度分析.
 // # 日期 当日合同签署总数 自定义类合同当日签署数 自定义类合同占比 模板类合同当日签署份数	模板类合同当日占比	模板类借贷类合同签署份数 模板类借贷类合同当日占比 模板类非借贷类合同签署份数 模板类非借贷类合同当日占比	法律增值业务.
 type BusinessDay struct {
@@ -48,7 +62,7 @@ func (f *FlashSignApp) BusinessDaySignSuccessTotalCount() error {
 		fmt.Println("FlashSignApp.BusinessDaySignSuccessTotalCount - error.", err.Error())
 		return err
 	}
-	fmt.Println("FlashSignApp.BusinessDaySignSuccessTotalCount - signSuccessTotalCount.", f.business.signSuccessTotalCount)
+	// fmt.Println("FlashSignApp.BusinessDaySignSuccessTotalCount - signSuccessTotalCount.", f.business.signSuccessTotalCount)
 	return nil
 }
 
@@ -60,22 +74,8 @@ func (f *FlashSignApp) BusinessDaySignTotalCount() error {
 		fmt.Println("FlashSignApp.BusinessDaySignTotalCount - error.", err.Error())
 		return err
 	}
-	fmt.Println("FlashSignApp.BusinessDaySignTotalCount - signTotalCount.", f.business.signTotalCount)
+	// fmt.Println("FlashSignApp.BusinessDaySignTotalCount - signTotalCount.", f.business.signTotalCount)
 	return nil
-}
-
-// ContractKind -
-const (
-	ContractKindCustom         = 0 // 自定义类合同.
-	ContractKindTemplate       = 1 // 模板类合同.
-	ContractKindTemplateLoan   = 2 // 模板类借贷类合同.
-	ContractKindTemplateNoLoan = 3 // 模板类非借贷类合同.
-)
-
-// Contract -
-type Contract struct {
-	kind  int
-	count int
 }
 
 // BusinessDayContractSignCount - 自定义类合同当日签署数 自定义类合同占比 模板类合同当日签署份数 模板类合同当日占比 - template_type= 0自定义类合同 | 1模板类合同.
@@ -104,7 +104,7 @@ func (f *FlashSignApp) BusinessDayContractSignCount() error {
 		f.business.customContractSignPercent = utils.CalcPercent(f.business.customContractSignCount*100, total)
 		f.business.templateContractSignPercent = utils.CalcPercent(f.business.templateContractSignCount*100, total)
 	}
-	fmt.Println("FlashSignApp.BusinessDayContractSignCount - ", f.business)
+	// fmt.Println("FlashSignApp.BusinessDayContractSignCount - ", f.business)
 	return nil
 }
 
@@ -134,7 +134,7 @@ func (f *FlashSignApp) BusinessDayTemplateContractSignCount() error {
 		f.business.templateLoanContractSignPercent = utils.CalcPercent(f.business.templateLoanContractSignCount*100, total)
 		f.business.templateNoLoanContractSignPercent = utils.CalcPercent(f.business.templateNoLoanContractSignCount*100, total)
 	}
-	fmt.Println("FlashSignApp.BusinessDayTemplateContractSignCount - ", f.business)
+	// fmt.Println("FlashSignApp.BusinessDayTemplateContractSignCount - ", f.business)
 	return nil
 }
 
@@ -143,17 +143,26 @@ func (f *FlashSignApp) dbSourceUrlBaasReport() string {
 	return f.dbSourceUrl + f.dbNameBaasReport
 }
 
-// BusinessInsert -
-func (f *FlashSignApp) BusinessInsert() error {
-	db, err := DBConnect(f.driverName, f.dbSourceUrlBaasReport(), 3)
+// RevenueRemove -
+func (f *FlashSignApp) BusinessRemove() error {
+	primaryKeyDateName := utils.FormatDate(f.business.currentDate)
+	sqlQuery := "delete from t_report_business where currentDate = ?; "
+	res, err := f.reportDb.Exec(sqlQuery, primaryKeyDateName)
 	if err != nil {
+		fmt.Println("FlashSignApp.BusinessRemove - error", err.Error())
 		return err
 	}
-	defer db.Close()
+	count, _ := res.RowsAffected()
+	fmt.Println("FlashSignApp.BusinessRemove - delete rows: ", count)
+	return nil
+}
+
+// BusinessInsert -
+func (f *FlashSignApp) BusinessInsert() error {
 	sqlQuery := "insert into t_report_business(currentDate, signSuccessTotalCount, signTotalCount, customContractSignCount, customContractSignPercent, templateContractSignCount, templateContractSignPercent, templateLoanContractSignCount, templateLoanContractSignPercent, templateNoLoanContractSignCount, templateNoLoanContractSignPercent, createTime) values (?,?,?,?,?,?,?,?,?,?,?,?)"
 	b := f.business
 	primaryKeyDateName := utils.FormatDate(b.currentDate)
-	res, err := db.Exec(sqlQuery, primaryKeyDateName, b.signSuccessTotalCount, b.signTotalCount,
+	res, err := f.reportDb.Exec(sqlQuery, primaryKeyDateName, b.signSuccessTotalCount, b.signTotalCount,
 		b.customContractSignCount, b.customContractSignPercent,
 		b.templateContractSignCount, b.templateContractSignPercent,
 		b.templateLoanContractSignCount, b.templateLoanContractSignPercent,
@@ -179,6 +188,8 @@ func (f *FlashSignApp) Business() error {
 	f.BusinessDaySignTotalCount()
 	f.BusinessDayContractSignCount()
 	f.BusinessDayTemplateContractSignCount()
+	fmt.Println("FlashSignApp.Business - ", f.business)
+	f.BusinessRemove()
 	f.BusinessInsert()
 	return nil
 }

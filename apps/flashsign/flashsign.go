@@ -17,6 +17,7 @@ type FlashSignApp struct {
 	dbNameBaasReport string
 	currentDate      string
 	db               *sql.DB
+	reportDb         *sql.DB
 
 	revenue  *RevenueDay
 	business *BusinessDay
@@ -65,7 +66,23 @@ func (f *FlashSignApp) init() error {
 		return err
 	}
 	f.db = db
+
+	reportDb, err := DBConnect(f.driverName, f.dbSourceUrlBaasReport(), 3)
+	if err != nil {
+		return err
+	}
+	f.reportDb = reportDb
 	return nil
+}
+
+// close -
+func (f *FlashSignApp) close() {
+	if f.db != nil {
+		f.db.Close()
+	}
+	if f.reportDb != nil {
+		f.reportDb.Close()
+	}
 }
 
 // Main -
@@ -76,5 +93,7 @@ func (f *FlashSignApp) Main() {
 	}
 	f.Revenue()
 	f.Business()
+
+	f.close()
 	fmt.Println("FlashSignApp.Main - over")
 }

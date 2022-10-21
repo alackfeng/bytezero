@@ -99,6 +99,13 @@ func FormatDate(d string) string {
 	return fmt.Sprintf("%04d-%02d-%02d", currMs.Year(), currMs.Month(), currMs.Day())
 }
 
+// FormatNextDateMs -
+func FormatNextDateMs(d string) int64 {
+	currMs, _ := time.Parse("2006-01-02 00:00:00", d)
+	currMs = currMs.AddDate(0, 0, 1)
+	return currMs.UnixNano() / 1e6
+}
+
 // MsFormat - ms format.
 func MsFormat(ts int64) string {
 	return time.Unix(0, ts*1000000).Format(time.RFC3339Nano)
