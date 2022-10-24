@@ -25,10 +25,12 @@ const (
 
 // RevenueDay - 营收维度分析.
 type RevenueDay struct {
-	currentDate string  // 日期.
-	totalAmount float64 // 当日总收入.
-	stockCount  int     // 当日库存份数.
-	expendCount int     // 当日消耗份数.
+	currentDate          string  // 日期.
+	totalAmount          float64 // 当日总收入.
+	stockCount           int     // 当日库存份数.
+	expiredPurchaseCount int     // 当日过期份数(已购).
+	expiredPresentCount  int     // 当日过期份数(赠送).
+	expendCount          int     // 当日消耗份数.
 
 	wechatTransAmount         float64 // 微信当日交易金额.
 	wechatTransAccess         int     // 微信当日交易用户.
@@ -76,16 +78,40 @@ func (f *RevenueDay) RevenueDayTotalAmount(db *sql.DB) error {
 	return nil
 }
 
-// RevenueDayStockCount - 当日库存份数 : 当天统计过往用户已购买的套餐的待签署数量.
+// RevenueDayStockCount - 当日库存份数 : 当天统计过往待签署数量(购买的+赠送的).
 func (f *RevenueDay) RevenueDayStockCount(db *sql.DB) error {
 	currentDateEnd := utils.FormatNextDateMs(f.currentDate)
-	sqlQuery := "SELECT IFNULL(SUM(count),0) as stockCount from t_bought_package where status = 0 and activity_type = 0 and expired_time > ? and create_time < ?; "
+	sqlQuery := "SELECT IFNULL(SUM(count),0) as stockCount from t_bought_package where status = 0 and expired_time > ? and create_time < ?; "
 	err := db.QueryRow(sqlQuery, currentDateEnd, currentDateEnd).Scan(&f.stockCount)
 	if err != nil {
 		fmt.Println("RevenueDay.RevenueDayStockCount - error.", err.Error())
 		return err
 	}
 	// fmt.Println("RevenueDay.RevenueDayStockCount - stockQuantity.", f.revenue.stockCount)
+	return nil
+}
+
+// RevenueDayExpiredPurchaseCount - 当日过期份数(已购).
+func (f *RevenueDay) RevenueDayExpiredPurchaseCount(db *sql.DB) error {
+	sqlQuery := "select IFNULL(SUM(count),0) as expiredPurchaseCount from t_bought_package where status = 2 and activity_type = 0 and FROM_UNIXTIME(expired_time DIV 1000, '%Y-%m-%d 00:00:00') = ?; "
+	err := db.QueryRow(sqlQuery, f.currentDate).Scan(&f.expiredPurchaseCount)
+	if err != nil {
+		fmt.Println("RevenueDay.RevenueDayExpiredPurchaseCount - error.", err.Error())
+		return err
+	}
+	// fmt.Println("RevenueDay.RevenueDayExpiredPurchaseCount - expiredPurchaseCount.", f.revenue.expiredPurchaseCount)
+	return nil
+}
+
+// RevenueDayExpiredPresentCount - 当日过期份数(赠送).
+func (f *RevenueDay) RevenueDayExpiredPresentCount(db *sql.DB) error {
+	sqlQuery := "select IFNULL(SUM(count),0) as expiredPresentCount from t_bought_package where status = 2 and activity_type = 1 and FROM_UNIXTIME(expired_time DIV 1000, '%Y-%m-%d 00:00:00') = ?; "
+	err := db.QueryRow(sqlQuery, f.currentDate).Scan(&f.expiredPresentCount)
+	if err != nil {
+		fmt.Println("RevenueDay.RevenueDayExpiredPresentCount - error.", err.Error())
+		return err
+	}
+	// fmt.Println("RevenueDay.RevenueDayExpiredPresentCount - expiredPresentCount.", f.revenue.expiredPresentCount)
 	return nil
 }
 
@@ -249,13 +275,13 @@ func (f *RevenueDay) RevenueRemove(reportDb *sql.DB) error {
 
 // RevenueInsert -
 func (b *RevenueDay) RevenueInsert(reportDb *sql.DB) error {
-	sqlQuery := "insert into t_report_revenue(currentDate, totalAmount, stockCount, expendCount, " +
+	sqlQuery := "insert into t_report_revenue(currentDate, totalAmount, stockCount, expiredPurchaseCount, expiredPresentCount, expendCount, " +
 		"wechatTransAmount, wechatTransAccess, wechatTransCount, wechatRepurchaseAccess, wechatFirstPurchaseAccess, " +
 		"alipayTransAmount, alipayTransAccess, alipayTransCount, alipayRepurchaseAccess, alipayFirstPurchaseAccess, " +
 		"presentCount, purchasePackageAmount1, purchasePackageAmount5, purchasePackageAmount10, purchasePackageAmount50, purchasePackageAmount100, createTime) " +
-		"values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+		"values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 	primaryKeyDateName := utils.FormatDate(b.currentDate)
-	res, err := reportDb.Exec(sqlQuery, primaryKeyDateName, b.totalAmount, b.stockCount, b.expendCount,
+	res, err := reportDb.Exec(sqlQuery, primaryKeyDateName, b.totalAmount, b.stockCount, b.expiredPurchaseCount, b.expiredPresentCount, b.expendCount,
 		b.wechatTransAmount, b.wechatTransAccess, b.wechatTransCount, b.wechatRepurchaseAccess, b.wechatFirstPurchaseAccess,
 		b.alipayTransAmount, b.alipayTransAccess, b.alipayTransCount, b.alipayRepurchaseAccess, b.alipayFirstPurchaseAccess,
 		b.presentCount, b.purchasePackageAmount1, b.purchasePackageAmount5, b.purchasePackageAmount10, b.purchasePackageAmount50, b.purchasePackageAmount100, time.Now(),
@@ -278,6 +304,8 @@ func (f *FlashSignApp) Revenue(lastDate string) {
 	o := &RevenueDay{currentDate: lastDate}
 	o.RevenueDayTotalAmount(f.db)
 	o.RevenueDayStockCount(f.db)
+	o.RevenueDayExpiredPurchaseCount(f.db)
+	o.RevenueDayExpiredPresentCount(f.db)
 	o.RevenueDayExpendCount(f.db)
 	o.RevenueDayWechatTrans(f.db, PaymodeWechat)
 	o.RevenueDayWechatRepurchaseAccess(f.db, PaymodeWechat)
