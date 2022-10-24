@@ -11,7 +11,7 @@
  Target Server Version : 80031
  File Encoding         : 65001
 
- Date: 21/10/2022 18:12:04
+ Date: 24/10/2022 16:40:25
 */
 
 SET NAMES utf8mb4;
@@ -33,7 +33,7 @@ CREATE TABLE `t_basedata_statistics`  (
   `user_person_cancel` int NULL DEFAULT NULL COMMENT '注销个人用户总数',
   PRIMARY KEY (`id`, `date_time`) USING BTREE,
   UNIQUE INDEX `date_index`(`date_time`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 31 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 818 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for t_report_business
@@ -55,7 +55,7 @@ CREATE TABLE `t_report_business`  (
   `createTime` timestamp(0) NULL DEFAULT NULL COMMENT '操作时间',
   PRIMARY KEY (`id`, `currentDate`) USING BTREE,
   INDEX `currentDate`(`currentDate`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '业务维度分析' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 742 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '业务维度分析' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for t_report_dict
@@ -68,7 +68,7 @@ CREATE TABLE `t_report_dict`  (
   `create_time` timestamp(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT 'operator log time',
   `update_time` timestamp(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) ON UPDATE CURRENT_TIMESTAMP(0) COMMENT 'operator log update time',
   PRIMARY KEY (`id`, `item`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '定义一些报表需要的字典，如lastReportDate etc' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '定义一些报表需要的字典，如lastReportDate etc' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for t_report_revenue
@@ -78,8 +78,10 @@ CREATE TABLE `t_report_revenue`  (
   `id` int NOT NULL AUTO_INCREMENT COMMENT 'auto seq',
   `currentDate` varchar(32) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '日期',
   `totalAmount` float UNSIGNED NULL DEFAULT NULL COMMENT '当日总收入',
-  `stockCount` bigint UNSIGNED NULL DEFAULT NULL COMMENT '当日库存份数',
+  `stockCount` bigint UNSIGNED NULL DEFAULT NULL COMMENT '当天统计过往待签署数量(购买的+赠送的)',
   `expendCount` bigint UNSIGNED NULL DEFAULT NULL COMMENT '当日消耗份数',
+  `expiredPurchaseCount` bigint UNSIGNED NULL DEFAULT NULL COMMENT '当日过期份数(已购)',
+  `expiredPresentCount` bigint UNSIGNED NULL DEFAULT NULL COMMENT '当日过期份数(赠送)',
   `wechatTransAmount` float UNSIGNED NULL DEFAULT NULL COMMENT '微信当日交易金额',
   `wechatTransAccess` bigint UNSIGNED NULL DEFAULT NULL COMMENT '微信当日交易用户',
   `wechatTransCount` bigint UNSIGNED NULL DEFAULT NULL COMMENT '微信当日交易笔数',
@@ -98,7 +100,7 @@ CREATE TABLE `t_report_revenue`  (
   `purchasePackageAmount100` bigint UNSIGNED NULL DEFAULT NULL COMMENT '购买100份套餐次数',
   `createTime` timestamp(0) NULL DEFAULT NULL COMMENT '操作时间',
   PRIMARY KEY (`id`, `currentDate`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '营收维度分析' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 742 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '营收维度分析' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for t_user_statistics
@@ -128,6 +130,6 @@ CREATE TABLE `t_user_statistics`  (
   `person_resign_30` int NULL DEFAULT NULL COMMENT '个人30天复签用户',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `date_index`(`date_time`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 31 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 818 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 SET FOREIGN_KEY_CHECKS = 1;

@@ -7,10 +7,9 @@ SELECT CURRENT_DATE();
 select round(UNIX_TIMESTAMP(@report_date)*1000, 0);
 SELECT DATE_ADD(@report_date,INTERVAL 1 DAY);
 
-set @report_date = '2021-11-19 00:00:00';
+set @report_date = '2022-10-23 00:00:00';
 set @report_date_end = DATE_ADD(@report_date,INTERVAL 1 DAY);
 set @report_timestamp = round(UNIX_TIMESTAMP(@report_date)*1000, 0);
-
 set @report_timestamp_end = round(UNIX_TIMESTAMP(@report_date_end)*1000, 0);
 SELECT @report_date, @report_date_end, @report_timestamp, @report_timestamp_end;
 
@@ -23,10 +22,16 @@ select * from t_contract ORDER BY create_time ASC LIMIT 0,1;
 SELECT SUM(price-dis_amount) as `当日总收入` FROM `t_order` where FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = @report_date and `status` = 2;
 SELECT * from t_order where FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = @report_date and `status` = 2;
 
-# 当日库存份数 - 当天统计过往用户已购买的套餐的待签署数量
+# 当日库存份数 - 当天统计过往待签署数量(购买的+赠送的)
 # SELECT * from t_bought_package where status = 0 and activity_type = 0 and expired_time >= @report_timestamp_end and create_time <= @report_timestamp_end;
-SELECT SUM(count) as `当日库存份数` from t_bought_package where status = 0 and activity_type = 0 and expired_time > @report_timestamp_end and create_time < @report_timestamp_end;
+SELECT SUM(count) as `当日库存份数` from t_bought_package where status = 0 and expired_time > @report_timestamp_end and create_time < @report_timestamp_end;
 # SELECT SUM(count) as `当日库存份数` from t_bought_package where status = 0 and activity_type = 0 and FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = @report_date;
+
+# 当日过期份数(已购) 
+select IFNULL(SUM(count),0) as `当日过期已购分数` from t_bought_package where status = 2 and activity_type = 0 and FROM_UNIXTIME(expired_time DIV 1000, '%Y-%m-%d 00:00:00') = @report_date;
+# 当日过期份数(赠送)
+select IFNULL(SUM(count),0) as `当日过期赠送分数` from t_bought_package where status = 2 and activity_type = 1 and FROM_UNIXTIME(expired_time DIV 1000, '%Y-%m-%d 00:00:00') = @report_date;
+
 
 # 当日消耗份数 - 当日套餐抵扣0（划扣） -  撤回3（撤销划扣）
 SELECT MAX(name), SUM(amount), package_deduction_kind from t_deduction_record WHERE FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = @report_date GROUP BY package_deduction_kind;
