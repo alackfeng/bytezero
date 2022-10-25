@@ -6,26 +6,29 @@ SELECT FROM_UNIXTIME(1603079211703 DIV 1000, '%Y-%m-%d');
 SELECT CURRENT_DATE();
 select round(UNIX_TIMESTAMP(@report_date)*1000, 0);
 SELECT DATE_ADD(@report_date,INTERVAL 1 DAY);
+select unix_timestamp();
 
-set @report_date = '2022-10-23 00:00:00';
+select @@global.time_zone,@@session.time_zone;
+
+
+set @report_date = '2022-10-22 00:00:00';
 set @report_date_end = DATE_ADD(@report_date,INTERVAL 1 DAY);
 set @report_timestamp = round(UNIX_TIMESTAMP(@report_date)*1000, 0);
 set @report_timestamp_end = round(UNIX_TIMESTAMP(@report_date_end)*1000, 0);
 SELECT @report_date, @report_date_end, @report_timestamp, @report_timestamp_end;
-
-select * from t_order ORDER BY create_time ASC LIMIT 0,1; #2020-10-19
-select * from t_contract ORDER BY create_time ASC LIMIT 0,1;
-
 
 # 当日总收入 - 
 # SELECT price, dis_amount, (price-dis_amount) as diff, `status` FROM `t_order` where FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d') = @report_date and `status` = 2;
 SELECT SUM(price-dis_amount) as `当日总收入` FROM `t_order` where FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = @report_date and `status` = 2;
 SELECT * from t_order where FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = @report_date and `status` = 2;
 
-# 当日库存份数 - 当天统计过往待签署数量(购买的+赠送的)
+# 当日库存份数 - 当天统计过往待签署数量(购买的+赠送的), 去掉单份体验合同
 # SELECT * from t_bought_package where status = 0 and activity_type = 0 and expired_time >= @report_timestamp_end and create_time <= @report_timestamp_end;
 SELECT SUM(count) as `当日库存份数` from t_bought_package where status = 0 and expired_time > @report_timestamp_end and create_time < @report_timestamp_end;
 # SELECT SUM(count) as `当日库存份数` from t_bought_package where status = 0 and activity_type = 0 and FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = @report_date;
+
+select SUM(amount) as `当日新增`,SUM(count) as `当日剩余`, SUM(amount-count) as `当日消耗` from t_bought_package where FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = @report_date;
+select * from t_bought_package where status = 0 and FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = @report_date;
 
 # 当日过期份数(已购) 
 select IFNULL(SUM(count),0) as `当日过期已购分数` from t_bought_package where status = 2 and activity_type = 0 and FROM_UNIXTIME(expired_time DIV 1000, '%Y-%m-%d 00:00:00') = @report_date;
@@ -73,14 +76,23 @@ SELECT count(1) from t_bought_package where FROM_UNIXTIME(create_time DIV 1000, 
 -- 业务维度分析
 # 日期	当日合同签署总数 当日合同签署次数	自定义类合同当日签署数	自定义类合同占比	模板类合同当日签署份数	模板类合同当日占比	模板类借贷类合同签署份数	模板类借贷类合同当日占比	模板类非借贷类合同签署份数	模板类非借贷类合同当日占比	法律增值业务
 
-# 当日合同签署总数 - 已完成4, 
-SELECT count(1) from t_contract_operate_record where FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = @report_date and operate_type=4;
-# 当日合同签署次数 - 签署次数1
-SELECT count(1) from t_contract_operate_record where FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = @report_date and operate_type=1;
+# 当日常规合同签署总数(operate_type=4) - 已完成4, contract_kind=0正式.
+select max(contract_kind) as `类别`, CASE WHEN contract_kind=0 THEN "常规合同" WHEN contract_kind=1 THEN "体验合同" ELSE "其他合同" END as `名称` , count(contract_id) as `数量` from t_contract_operate_record t1 INNER JOIN t_contract t2 ON t1.contract_id=t2.id where FROM_UNIXTIME(t1.create_time DIV 1000, '%Y-%m-%d 00:00:00') = @report_date and t1.operate_type=4 group by contract_kind;
+
+# 当日常规合同签署次数(operate_type=1) : 一份合同存在多人签署，每个操作都算, contract_kind=0正式合同.
+select max(contract_kind) as `类别`, CASE WHEN contract_kind=0 THEN "常规合同" WHEN contract_kind=1 THEN "体验合同" ELSE "其他合同" END as `名称` , count(contract_id) as `数量` from t_contract_operate_record t1 INNER JOIN t_contract t2 ON t1.contract_id=t2.id where FROM_UNIXTIME(t1.create_time DIV 1000, '%Y-%m-%d 00:00:00') = @report_date and t1.operate_type=1 group by contract_kind;
+
+# 当日体验合同签署总数 - 已完成4, contract_kind=1体验合同.
+# select count(1) from t_contract_operate_record t1 INNER JOIN t_contract t2 ON t1.contract_id=t2.id where t2.contract_kind=0 and FROM_UNIXTIME(t1.create_time DIV 1000, '%Y-%m-%d 00:00:00') = @report_date and t1.operate_type=4;
+# 当日体验合同签署次数 - 签署次数1, contract_kind=1体验合同.
+# select count(1) from t_contract_operate_record t1 INNER JOIN t_contract t2 ON t1.contract_id=t2.id where t2.contract_kind=0 and FROM_UNIXTIME(t1.create_time DIV 1000, '%Y-%m-%d 00:00:00') = @report_date and t1.operate_type=1;
+
+
 
 # 自定义类合同当日签署数	自定义类合同占比 模板类合同当日签署份数	模板类合同当日占比
-# template_type= 0自定义类合同 | 1模板类合同
-select template_type as `合同类别`, CASE WHEN template_type=0 THEN "自定义类合同当日签署数" ELSE "模板类合同当日签署份数" END as `名称`, SUM(template_count) as `当日签署份数` from  (SELECT template_id, count(1) as template_count, CASE WHEN template_id>0 THEN 1 ELSE 0 END template_type from t_contract where FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = @report_date GROUP BY template_id) t GROUP BY template_type;
+# template_type= 0自定义类合同 | 1模板类合同（contract_kind=0为正常合同）
+select template_type as `合同类别`, CASE WHEN template_type=0 THEN "自定义类合同当日签署数" ELSE "模板类合同当日签署份数" END as `名称`, SUM(template_count) as `当日签署份数` from  (SELECT template_id, count(1) as template_count, CASE WHEN template_id>0 THEN 1 ELSE 0 END template_type from t_contract where FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = @report_date and contract_kind=0 GROUP BY template_id) t GROUP BY template_type;
+
 
 # 模板类借贷类合同签署份数	模板类借贷类合同当日占比	模板类非借贷类合同签署份数	模板类非借贷类合同当日占比
 # SELECT id from t_template_class where name like '%借%'; // 3 19
@@ -88,7 +100,7 @@ select template_type as `合同类别`, CASE WHEN template_type=0 THEN "自定�
 # select count(t.template_count) as `模板类借贷类合同签署份数` from (SELECT template_id, count(1) as template_count from t_contract GROUP BY template_id HAVING template_id>0 and template_id in (SELECT id from t_template where template_class_id in (3, 19))) t;
 # select count(t.template_count) as `模板类非借贷类合同签署份数` from (SELECT template_id, count(1) as template_count from t_contract GROUP BY template_id HAVING template_id>0 and template_id not in (SELECT id from t_template where template_class_id in (3, 19))) t;
 
-select t.template_type as `合同类别`, CASE WHEN template_type=2 THEN "模板类借贷类合同签署份数" ELSE "模板类非借贷类合同签署份数" END as `名称`, SUM(t.template_count) as `签署份数` from (SELECT template_id, count(1) as template_count, case when template_id in (SELECT id from t_template where template_class_id in (SELECT id from t_template_class where name like '%借%')) then 2 else 3 end template_type from t_contract where FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = @report_date GROUP BY template_id HAVING template_id>0) t GROUP BY template_type;
+select t.template_type as `合同类别`, CASE WHEN template_type=2 THEN "模板类借贷类合同签署份数" ELSE "模板类非借贷类合同签署份数" END as `名称`, SUM(t.template_count) as `签署份数` from (SELECT template_id, count(1) as template_count, case when template_id in (SELECT id from t_template where template_class_id in (SELECT id from t_template_class where name like '%借%')) then 2 else 3 end template_type from t_contract where FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = @report_date and contract_kind=0 GROUP BY template_id HAVING template_id>0) t GROUP BY template_type;
 
 # 法律增值业务
 SELECT * from contract_apply_order;

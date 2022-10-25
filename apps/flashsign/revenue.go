@@ -78,7 +78,7 @@ func (f *RevenueDay) RevenueDayTotalAmount(db *sql.DB) error {
 	return nil
 }
 
-// RevenueDayStockCount - 当日库存份数 : 当天统计过往待签署数量(购买的+赠送的).
+// RevenueDayStockCount - 当日库存份数 - 当天统计过往待签署数量(购买的+赠送的), 去掉单份体验合同.
 func (f *RevenueDay) RevenueDayStockCount(db *sql.DB) error {
 	currentDateEnd := utils.FormatNextDateMs(f.currentDate)
 	sqlQuery := "SELECT IFNULL(SUM(count),0) as stockCount from t_bought_package where status = 0 and expired_time > ? and create_time < ?; "
