@@ -147,6 +147,7 @@ func (f *FlashSignApp) Main(reportDate string) {
 				fmt.Println("FlashSignApp.Main - current time ", time.Now(), " overload ", f.config.lastReportDate)
 				break
 			}
+			fmt.Println("FlashSignApp.Main - current time ", time.Now(), " execute report: ", f.config.lastReportDate)
 			dura := utils.NewDuration()
 			f.Revenue(f.config.lastReportDate)
 			f.Business(f.config.lastReportDate)
