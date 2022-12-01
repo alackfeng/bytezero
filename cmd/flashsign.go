@@ -54,6 +54,6 @@ func init() {
 	// is called directly, e.g.:
 	// flashsignCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	flashsignCmd.Flags().StringP("last-report-date", "d", "", "t_report_dict.lastReportDate format, eg: 2021-12-08 00:00:00")
-	flashsignCmd.Flags().StringP("table-field", "t", "", "cmd: averageAmount30day")
+	flashsignCmd.Flags().StringP("table-field", "t", "", "cmd: averageAmount30day | revenueMonth ")
 	flashsignCmd.Flags().BoolP("loop", "l", false, "loop to now")
 }

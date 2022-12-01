@@ -94,6 +94,15 @@ func (f *FlashSignApp) close() {
 	}
 }
 
+
+func FormatNextMonth(d string, day int) (string, bool) {
+	now, _ := time.Parse("2006-01-02 00:00:00", d)
+	currMs := now.AddDate(0, day, 0)
+	if time.Now().Before(currMs) {
+		return "", false
+	}
+	return fmt.Sprintf("%04d-%02d-%02d 00:00:00", currMs.Year(), currMs.Month(), currMs.Day()), true
+}
 // FormatNextDate -
 func FormatNextDate(d string, day int) (string, bool) {
 	now, _ := time.Parse("2006-01-02 00:00:00", d)
@@ -143,20 +152,32 @@ func (f *FlashSignApp) Main(reportDate string, tableField string, loop bool) {
 				o := &RevenueDay{currentDate: d}
 				if tableField == "averageAmount30day" {
 					o.AverageAmount30Day(f.reportDb, true)		
+				} else if tableField == "revenueMonth" {
+					f.RevenueMonth(d)
 				}
 			} else {
 			for {
 				o := &RevenueDay{currentDate: d}
 				if tableField == "averageAmount30day" {
 					o.AverageAmount30Day(f.reportDb, true)		
-				}
-				var ok bool
-				d, ok = FormatNextDate(o.currentDate, 1)
-				if !ok {
-					fmt.Println("FlashSignApp.Main - skip ", o.currentDate, ", next: ", d)
-					break
+					var ok bool
+					d, ok = FormatNextDate(o.currentDate, 1)
+					if !ok {
+						fmt.Println("FlashSignApp.Main - skip ", o.currentDate, ", next: ", d)
+						break
+					}
+				} else if tableField == "revenueMonth" {
+					f.RevenueMonth(d)
+					var ok bool
+					d, ok = FormatNextMonth(o.currentDate, 1)
+					if !ok {
+						fmt.Println("FlashSignApp.Main - skip ", o.currentDate, ", next: ", d)
+						break
+					}
+					
 				}
 				fmt.Println("FlashSignApp.Main - cmd ", tableField, o.currentDate, ", next: ", d)
+				// time.Sleep(time.Second*1)	
 			}
 			}
 			// if tableField == "averageAmount30day" {
