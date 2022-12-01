@@ -105,6 +105,13 @@ func FormatNextDate(d string, day int) (string, bool) {
 	return fmt.Sprintf("%04d-%02d-%02d 00:00:00", currMs.Year(), currMs.Month(), currMs.Day()), true
 }
 
+// NDayDate - 
+func NDayDate(d string, day int) (string, string) {
+	now, _ := time.Parse("2006-01-02 00:00:00", d)
+	currMs := now.AddDate(0, 0, day)
+	return fmt.Sprintf("%04d-%02d-%02d", now.Year(), now.Month(), now.Day()), fmt.Sprintf("%04d-%02d-%02d", currMs.Year(), currMs.Month(), currMs.Day())
+}
+
 // CheckReportDate -
 func CheckReportDate(d string) (string, error) {
 	currMs, err := time.Parse("2006-01-02 00:00:00", d)
@@ -117,7 +124,7 @@ func CheckReportDate(d string) (string, error) {
 // Main -
 // go run .\main.go flashsign .
 // go run .\main.go flashsign -d '2022-10-19 00:00:00' .
-func (f *FlashSignApp) Main(reportDate string) {
+func (f *FlashSignApp) Main(reportDate string, tableField string, loop bool) {
 	if err := f.init(); err != nil {
 		fmt.Printf("FlashSignApp.Main - error %v\n", err.Error())
 		return
@@ -125,7 +132,38 @@ func (f *FlashSignApp) Main(reportDate string) {
 
 	count := 0
 	bQuit := false
-	if reportDate != "" {
+
+	if tableField != "" {
+		d, err := CheckReportDate(reportDate)
+		fmt.Println("FlashSignApp.Main - ", d, err, reportDate, tableField)
+		if reportDate == "" || err != nil  {
+			fmt.Printf("FlashSignApp.Main - run cmd: --table-field averageAmount30day --last-report-date 2021-12-08 00:00:00\n.")
+		} else {
+			if !loop {
+				o := &RevenueDay{currentDate: d}
+				if tableField == "averageAmount30day" {
+					o.AverageAmount30Day(f.reportDb, true)		
+				}
+			} else {
+			for {
+				o := &RevenueDay{currentDate: d}
+				if tableField == "averageAmount30day" {
+					o.AverageAmount30Day(f.reportDb, true)		
+				}
+				var ok bool
+				d, ok = FormatNextDate(o.currentDate, 1)
+				if !ok {
+					fmt.Println("FlashSignApp.Main - skip ", o.currentDate, ", next: ", d)
+					break
+				}
+				fmt.Println("FlashSignApp.Main - cmd ", tableField, o.currentDate, ", next: ", d)
+			}
+			}
+			// if tableField == "averageAmount30day" {
+		//		o.AverageAmount30Day(f.reportDb, true)		
+		//	}
+		}		
+	} else if reportDate != "" {
 		d, err := CheckReportDate(reportDate)
 		if err != nil {
 			fmt.Printf("FlashSignApp.Main - report date param <%s> error:%v\n.", reportDate, err.Error())

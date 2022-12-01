@@ -51,6 +51,7 @@ type RevenueDay struct {
 	purchasePackageAmount10  int // 购买10份套餐次数.
 	purchasePackageAmount50  int // 购买50份套餐次数.
 	purchasePackageAmount100 int // 购买100份套餐次数.
+	averageAmount30day	 float64 // 30日收入均值.
 }
 
 // NewRevenueDay -
@@ -273,6 +274,27 @@ func (f *RevenueDay) RevenueDayPurchasePackage(db *sql.DB, amount int) (int, err
 	return count, nil
 }
 
+// AverageAmount30Day - 30日均值.
+func (f *RevenueDay) AverageAmount30Day(db *sql.DB, update bool) error {
+	sqlQuery := "select sum(totalAmount)/30 as averageAmount30day from t_report_revenue where currentDate > ? and currentDate <= ?;"
+	current, n30day := NDayDate(f.currentDate, -30)
+	fmt.Println("RevenueDay.AverageAmount30Day - ", current, n30day)
+	err := db.QueryRow(sqlQuery, n30day, current).Scan(&f.averageAmount30day)
+	if err != nil {
+		fmt.Println("RevenueDay.AverageAmount30Day - error.", err.Error())
+		return err
+	}
+	fmt.Println("RevenueDay.AverageAmount30Day - averageAmount30day.", f.averageAmount30day)
+	if update {
+		sqlQuery = "update t_report_revenue set averageAmount30day = ? where currentDate = ?;"
+		_, err := db.Exec(sqlQuery, f.averageAmount30day, current)
+		if err != nil {
+			return err
+		}	
+	}	
+	return nil
+}
+
 // RevenueRemove -
 func (f *RevenueDay) RevenueRemove(reportDb *sql.DB) error {
 	primaryKeyDateName := utils.FormatDate(f.currentDate)
@@ -292,13 +314,14 @@ func (b *RevenueDay) RevenueInsert(reportDb *sql.DB) error {
 	sqlQuery := "insert into t_report_revenue(currentDate, totalAmount, stockAll, stockCount, expiredPurchaseCount, expiredPresentCount, expendCount, " +
 		"wechatTransAmount, wechatTransAccess, wechatTransCount, wechatRepurchaseAccess, wechatFirstPurchaseAccess, " +
 		"alipayTransAmount, alipayTransAccess, alipayTransCount, alipayRepurchaseAccess, alipayFirstPurchaseAccess, " +
-		"presentCount, purchasePackageAmount1, purchasePackageAmount5, purchasePackageAmount10, purchasePackageAmount50, purchasePackageAmount100, createTime) " +
-		"values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+		"presentCount, purchasePackageAmount1, purchasePackageAmount5, purchasePackageAmount10, purchasePackageAmount50, purchasePackageAmount100, averageAmount30day, createTime) " +
+		"values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 	primaryKeyDateName := utils.FormatDate(b.currentDate)
 	res, err := reportDb.Exec(sqlQuery, primaryKeyDateName, b.totalAmount, b.stockAll, b.stockCount, b.expiredPurchaseCount, b.expiredPresentCount, b.expendCount,
 		b.wechatTransAmount, b.wechatTransAccess, b.wechatTransCount, b.wechatRepurchaseAccess, b.wechatFirstPurchaseAccess,
 		b.alipayTransAmount, b.alipayTransAccess, b.alipayTransCount, b.alipayRepurchaseAccess, b.alipayFirstPurchaseAccess,
-		b.presentCount, b.purchasePackageAmount1, b.purchasePackageAmount5, b.purchasePackageAmount10, b.purchasePackageAmount50, b.purchasePackageAmount100, time.Now(),
+		b.presentCount, b.purchasePackageAmount1, b.purchasePackageAmount5, b.purchasePackageAmount10, b.purchasePackageAmount50, b.purchasePackageAmount100, b.averageAmount30day,
+		time.Now(),
 	)
 	if err != nil {
 		fmt.Println("RevenueDay.RevenueInsert - error", err.Error())
@@ -337,4 +360,5 @@ func (f *FlashSignApp) Revenue(lastDate string) {
 	// fmt.Println("FlashSignApp.Revenue - ", o)
 	o.RevenueRemove(f.reportDb)
 	o.RevenueInsert(f.reportDb)
+	o.AverageAmount30Day(f.db, true)	
 }

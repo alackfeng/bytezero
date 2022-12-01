@@ -35,7 +35,9 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("flashsign called")
 		lastReportDate, _ := cmd.Flags().GetString("last-report-date")
-		flashsign.NewFlashSignApp().Main(lastReportDate)
+		tableField, _ := cmd.Flags().GetString("table-field")
+		loop, _ := cmd.Flags().GetBool("loop")
+		flashsign.NewFlashSignApp().Main(lastReportDate, tableField, loop)
 	},
 }
 
@@ -52,4 +54,6 @@ func init() {
 	// is called directly, e.g.:
 	// flashsignCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	flashsignCmd.Flags().StringP("last-report-date", "d", "", "t_report_dict.lastReportDate format, eg: 2021-12-08 00:00:00")
+	flashsignCmd.Flags().StringP("table-field", "t", "", "cmd: averageAmount30day")
+	flashsignCmd.Flags().BoolP("loop", "l", false, "loop to now")
 }
