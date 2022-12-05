@@ -23,12 +23,19 @@ const (
 	PurchasePackageAmount100 = 100
 )
 
+const (
+	ActivityTypePurchase = 0
+	ActivityTypePresent  = 1
+)
+
 // RevenueDay - 营收维度分析.
 type RevenueDay struct {
 	currentDate          string  // 日期.
 	totalAmount          float64 // 当日总收入.
 	stockAll             int     // 当前所有份数.
 	stockCount           int     // 当日库存份数.
+	stockPurchaseCount   int     // 当日库存已购份数.
+	stockPresentCount    int     // 当日库存赠送份数.
 	expiredPurchaseCount int     // 当日过期份数(已购).
 	expiredPresentCount  int     // 当日过期份数(赠送).
 	expendCount          int     // 当日消耗份数.
@@ -96,12 +103,30 @@ func (f *RevenueDay) RevenueDayStockAll(db *sql.DB) error {
 // RevenueDayStockCount - 当日库存份数 - 当天统计过往待签署数量(购买的+赠送的), 去掉单份体验合同.
 func (f *RevenueDay) RevenueDayStockCount(db *sql.DB) error {
 	currentDateEnd := utils.FormatNextDateMs(f.currentDate)
-	sqlQuery := "SELECT IFNULL(SUM(count),0) as stockCount from t_bought_package where status = 0 and expired_time > ? and create_time < ?; "
-	err := db.QueryRow(sqlQuery, currentDateEnd, currentDateEnd).Scan(&f.stockCount)
+	sqlQuery := "SELECT IFNULL(SUM(count),0) as stockCount, activity_type from t_bought_package where status = 0 and expired_time > ? and create_time < ? group by activity_type; "
+	rows, err := db.Query(sqlQuery, currentDateEnd, currentDateEnd)
 	if err != nil {
 		fmt.Println("RevenueDay.RevenueDayStockCount - error.", err.Error())
 		return err
 	}
+	defer rows.Close()
+	
+	var total int
+	for rows.Next() {
+		var count int
+		var activity int
+		if err := rows.Scan(&count, &activity); err != nil {
+			return err
+		}
+		if activity == ActivityTypePurchase {
+			f.stockPurchaseCount = count
+		} else if activity == ActivityTypePresent {
+			f.stockPresentCount = count
+		} else {
+			total = count
+		}
+	}
+	f.stockCount = f.stockPurchaseCount + f.stockPresentCount + total
 	// fmt.Println("RevenueDay.RevenueDayStockCount - stockQuantity.", f.revenue.stockCount)
 	return nil
 }
@@ -311,13 +336,13 @@ func (f *RevenueDay) RevenueRemove(reportDb *sql.DB) error {
 
 // RevenueInsert -
 func (b *RevenueDay) RevenueInsert(reportDb *sql.DB) error {
-	sqlQuery := "insert into t_report_revenue(currentDate, totalAmount, stockAll, stockCount, expiredPurchaseCount, expiredPresentCount, expendCount, " +
+	sqlQuery := "insert into t_report_revenue(currentDate, totalAmount, stockAll, stockCount, stockPurchaseCount, stockPresentCount, expiredPurchaseCount, expiredPresentCount, expendCount, " +
 		"wechatTransAmount, wechatTransAccess, wechatTransCount, wechatRepurchaseAccess, wechatFirstPurchaseAccess, " +
 		"alipayTransAmount, alipayTransAccess, alipayTransCount, alipayRepurchaseAccess, alipayFirstPurchaseAccess, " +
 		"presentCount, purchasePackageAmount1, purchasePackageAmount5, purchasePackageAmount10, purchasePackageAmount50, purchasePackageAmount100, averageAmount30day, createTime) " +
-		"values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+		"values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 	primaryKeyDateName := utils.FormatDate(b.currentDate)
-	res, err := reportDb.Exec(sqlQuery, primaryKeyDateName, b.totalAmount, b.stockAll, b.stockCount, b.expiredPurchaseCount, b.expiredPresentCount, b.expendCount,
+	res, err := reportDb.Exec(sqlQuery, primaryKeyDateName, b.totalAmount, b.stockAll, b.stockCount, b.stockPurchaseCount, b.stockPresentCount, b.expiredPurchaseCount, b.expiredPresentCount, b.expendCount,
 		b.wechatTransAmount, b.wechatTransAccess, b.wechatTransCount, b.wechatRepurchaseAccess, b.wechatFirstPurchaseAccess,
 		b.alipayTransAmount, b.alipayTransAccess, b.alipayTransCount, b.alipayRepurchaseAccess, b.alipayFirstPurchaseAccess,
 		b.presentCount, b.purchasePackageAmount1, b.purchasePackageAmount5, b.purchasePackageAmount10, b.purchasePackageAmount50, b.purchasePackageAmount100, b.averageAmount30day,
