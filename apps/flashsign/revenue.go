@@ -360,5 +360,5 @@ func (f *FlashSignApp) Revenue(lastDate string) {
 	// fmt.Println("FlashSignApp.Revenue - ", o)
 	o.RevenueRemove(f.reportDb)
 	o.RevenueInsert(f.reportDb)
-	o.AverageAmount30Day(f.db, true)	
+	o.AverageAmount30Day(f.reportDb, true)	
 }
