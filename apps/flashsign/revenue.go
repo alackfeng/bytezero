@@ -21,6 +21,7 @@ const (
 	PurchasePackageAmount10  = 10
 	PurchasePackageAmount50  = 50
 	PurchasePackageAmount100 = 100
+	PurchasePackageAmount200 = 200
 )
 
 const (
@@ -58,6 +59,7 @@ type RevenueDay struct {
 	purchasePackageAmount10  int // 购买10份套餐次数.
 	purchasePackageAmount50  int // 购买50份套餐次数.
 	purchasePackageAmount100 int // 购买100份套餐次数.
+	purchasePackageAmount200 int // 购买200份套餐次数.
 	averageAmount30day	 float64 // 30日收入均值.
 }
 
@@ -339,13 +341,13 @@ func (b *RevenueDay) RevenueInsert(reportDb *sql.DB) error {
 	sqlQuery := "insert into t_report_revenue(currentDate, totalAmount, stockAll, stockCount, stockPurchaseCount, stockPresentCount, expiredPurchaseCount, expiredPresentCount, expendCount, " +
 		"wechatTransAmount, wechatTransAccess, wechatTransCount, wechatRepurchaseAccess, wechatFirstPurchaseAccess, " +
 		"alipayTransAmount, alipayTransAccess, alipayTransCount, alipayRepurchaseAccess, alipayFirstPurchaseAccess, " +
-		"presentCount, purchasePackageAmount1, purchasePackageAmount5, purchasePackageAmount10, purchasePackageAmount50, purchasePackageAmount100, averageAmount30day, createTime) " +
-		"values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+		"presentCount, purchasePackageAmount1, purchasePackageAmount5, purchasePackageAmount10, purchasePackageAmount50, purchasePackageAmount100, purchasePackageAmount200, averageAmount30day, createTime) " +
+		"values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 	primaryKeyDateName := utils.FormatDate(b.currentDate)
 	res, err := reportDb.Exec(sqlQuery, primaryKeyDateName, b.totalAmount, b.stockAll, b.stockCount, b.stockPurchaseCount, b.stockPresentCount, b.expiredPurchaseCount, b.expiredPresentCount, b.expendCount,
 		b.wechatTransAmount, b.wechatTransAccess, b.wechatTransCount, b.wechatRepurchaseAccess, b.wechatFirstPurchaseAccess,
 		b.alipayTransAmount, b.alipayTransAccess, b.alipayTransCount, b.alipayRepurchaseAccess, b.alipayFirstPurchaseAccess,
-		b.presentCount, b.purchasePackageAmount1, b.purchasePackageAmount5, b.purchasePackageAmount10, b.purchasePackageAmount50, b.purchasePackageAmount100, b.averageAmount30day,
+		b.presentCount, b.purchasePackageAmount1, b.purchasePackageAmount5, b.purchasePackageAmount10, b.purchasePackageAmount50, b.purchasePackageAmount100, b.purchasePackageAmount200, b.averageAmount30day,
 		time.Now(),
 	)
 	if err != nil {
@@ -382,6 +384,7 @@ func (f *FlashSignApp) Revenue(lastDate string) {
 	o.purchasePackageAmount10, _ = o.RevenueDayPurchasePackage(f.db, PurchasePackageAmount10)
 	o.purchasePackageAmount50, _ = o.RevenueDayPurchasePackage(f.db, PurchasePackageAmount50)
 	o.purchasePackageAmount100, _ = o.RevenueDayPurchasePackage(f.db, PurchasePackageAmount100)
+	o.purchasePackageAmount200, _ = o.RevenueDayPurchasePackage(f.db, PurchasePackageAmount200)
 	// fmt.Println("FlashSignApp.Revenue - ", o)
 	o.RevenueRemove(f.reportDb)
 	o.RevenueInsert(f.reportDb)
