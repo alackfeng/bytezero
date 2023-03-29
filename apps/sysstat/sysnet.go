@@ -11,7 +11,13 @@ import (
 // NetStat - 网卡采集.
 type NetStat struct {
 	netif        []NetInfo
-	countersStat map[int64][]gnet.IOCountersStat
+	countersStat []*CountersStat
+	maxStat      int32
+}
+
+type CountersStat struct {
+	ioc   []gnet.IOCountersStat
+	nowMs int64
 }
 
 // NetInfo - 采集信息.
@@ -28,7 +34,7 @@ func (s NetInfo) String() string {
 // NewNetStat -
 func NewNetStat() *NetStat {
 	return &NetStat{
-		countersStat: make(map[int64][]gnet.IOCountersStat),
+		maxStat: 100,
 	}
 }
 
@@ -69,7 +75,10 @@ func (s *NetStat) Stat() error {
 			if err != nil {
 				return err
 			}
-			s.countersStat[now] = ioCounters
+			s.countersStat = append(s.countersStat, &CountersStat{ioc: ioCounters, nowMs: now})
+			if len(s.countersStat) > int(s.maxStat) {
+				s.countersStat = s.countersStat[s.maxStat/3:]
+			}
 			for i, ioCounter := range ioCounters {
 				fmt.Println(">>>>>bytezero sysstat ioCounter ", i, ioCounter.Name, ioCounter.BytesSent, ioCounter.BytesRecv)
 			}
