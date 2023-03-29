@@ -3,6 +3,8 @@ package sysstat
 import (
 	"fmt"
 	"net"
+	"os/exec"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -44,17 +46,29 @@ func (s *NetStat) GetInterfaces() error {
 		return err
 	}
 	for i, networkInterface := range networkInterfaces {
-		networkInterfacei := networkInterface
+		var speed uint32
 		addr, _ := networkInterface.Addrs()
-		pIfRow := &syscall.MibIfRow{Index: uint32(networkInterfacei.Index)}
-		if err := syscall.GetIfEntry(pIfRow); err != nil {
-			return err
+		if runtime.GOOS == "windows" {
+			networkInterfacei := networkInterface
+			pIfRow := &syscall.MibIfRow{Index: uint32(networkInterfacei.Index)}
+			if err := syscall.GetIfEntry(pIfRow); err != nil {
+				return err
+			}
+			fmt.Println(">>>>>bytezero sysstat interface ", i, networkInterfacei, addr[1], pIfRow.Speed/1024/1024)
+			speed = pIfRow.Speed
+		} else {
+			cmd := exec.Command("ethtool", networkInterface.Name)
+			output, err := cmd.CombinedOutput()
+			if err != nil {
+				return err
+			}
+			fmt.Println(">>>>>bytezero sysstat interface ", i, networkInterface, addr[1], string(output))
 		}
-		fmt.Println(">>>>>bytezero sysstat interface ", i, networkInterfacei, addr[1], pIfRow.Speed/1024/1024)
+
 		s.netif = append(s.netif, NetInfo{
 			Interface: networkInterface,
 			Addr:      addr,
-			Speed:     pIfRow.Speed,
+			Speed:     speed,
 		})
 	}
 	return nil
