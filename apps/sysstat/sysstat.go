@@ -1,6 +1,7 @@
 package sysstat
 
 import (
+	"context"
 	"fmt"
 )
 
@@ -24,10 +25,12 @@ func (s *SysStat) Init() {
 }
 
 // Execute -
-func (s *SysStat) Execute() {
+func (s *SysStat) Execute() context.CancelFunc {
 	fmt.Println(">>>>>bytezero sysstat Execute begin.")
-	if err := s.netst.Stat(); err != nil {
+	ctx, cancel := context.WithCancel(context.TODO())
+	if err := s.netst.Stat(ctx); err != nil {
 		fmt.Println(">>>>>bytezero sysstat GetInterfaces err.", err.Error())
 	}
 	fmt.Println(">>>>>bytezero sysstat Execute end...")
+	return cancel
 }

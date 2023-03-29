@@ -1,6 +1,7 @@
 package sysstat
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"time"
@@ -65,10 +66,13 @@ func (s *NetStat) GetInterfaces() error {
 }
 
 // Stat -
-func (s *NetStat) Stat() error {
+func (s *NetStat) Stat(ctx context.Context) error {
 	ticker := time.NewTicker(time.Second * 1)
 	for {
 		select {
+		case <-ctx.Done():
+			fmt.Println(">>>>>bytezero sysstat ioCounter done.")
+			break
 		case <-ticker.C:
 			now := time.Now().UnixMilli()
 			ioCounters, err := gnet.IOCounters(true)
