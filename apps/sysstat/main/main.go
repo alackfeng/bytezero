@@ -9,6 +9,7 @@ import (
 
 func main() {
 	fmt.Println(">>>>>bytezero sysstat main: pid", os.Getpid())
+
 	stat := sysstat.NewSysStat()
 	stat.Init()
 	stat.Execute()

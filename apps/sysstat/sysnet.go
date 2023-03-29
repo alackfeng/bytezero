@@ -3,9 +3,6 @@ package sysstat
 import (
 	"fmt"
 	"net"
-	"os/exec"
-	"runtime"
-	"syscall"
 	"time"
 
 	gnet "github.com/shirou/gopsutil/net"
@@ -45,26 +42,13 @@ func (s *NetStat) GetInterfaces() error {
 	if err != nil {
 		return err
 	}
-	for i, networkInterface := range networkInterfaces {
+	for _, networkInterface := range networkInterfaces {
 		var speed uint32
 		addr, _ := networkInterface.Addrs()
-		if runtime.GOOS == "windows" {
-			networkInterfacei := networkInterface
-			pIfRow := &syscall.MibIfRow{Index: uint32(networkInterfacei.Index)}
-			if err := syscall.GetIfEntry(pIfRow); err != nil {
-				return err
-			}
-			fmt.Println(">>>>>bytezero sysstat interface ", i, networkInterfacei, addr[1], pIfRow.Speed/1024/1024)
-			speed = pIfRow.Speed
-		} else {
-			cmd := exec.Command("ethtool", networkInterface.Name)
-			output, err := cmd.CombinedOutput()
-			if err != nil {
-				return err
-			}
-			fmt.Println(">>>>>bytezero sysstat interface ", i, networkInterface, addr[1], string(output))
+		speed, err := GetNetworkMaxSpeed(networkInterface)
+		if err != nil {
+			return err
 		}
-
 		s.netif = append(s.netif, NetInfo{
 			Interface: networkInterface,
 			Addr:      addr,
