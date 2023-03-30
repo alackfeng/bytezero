@@ -23,13 +23,16 @@ import (
 	"github.com/alackfeng/bytezero/cmd"
 )
 
+/**
+ * go run .\main.go server --config .\scripts\.bytezero.local.yaml --use
+**/
 func main() {
-    fmt.Println(">>>>>bytezero main: pid", os.Getpid())
-    if bytezero.IsDaemon() {
-        if err := bytezero.Daemon(); err != nil {
-            fmt.Println("bytezero Daemon:", err.Error())
-            os.Exit(1)
-        }
-    }
-    cmd.Execute()
+	fmt.Println(">>>>>bytezero main: pid", os.Getpid())
+	if bytezero.IsDaemon() {
+		if err := bytezero.Daemon(); err != nil {
+			fmt.Println("bytezero Daemon:", err.Error())
+			os.Exit(1)
+		}
+	}
+	cmd.Execute()
 }

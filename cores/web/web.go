@@ -24,35 +24,34 @@ const customeHeads = ", " + BytezeroHead + ", " + AppHead + ", " + AppCredential
 // MIMEPROTOBUF - protobuf支持.
 const MIMEPROTOBUF = "application/x-protobuf"
 
-
 // GinWeb - Web Gin Gateway.GinWeb
 type GinWeb struct {
-    host string
-    heart int32
-    *gin.Engine
-    bzn bz.BZNet
+	host  string
+	heart int32
+	*gin.Engine
+	bzn bz.BZNet
 
-    http bool
-    // https api.
-    https bool
-    address string
-    certFile string
-    keyFile string
+	http bool
+	// https api.
+	https    bool
+	address  string
+	certFile string
+	keyFile  string
 
-    // files.
-    uploadPath string
-    logPath string
-    memory int64 // = 8 << 20 // 8M.
+	// files.
+	uploadPath string
+	logPath    string
+	memory     int64 // = 8 << 20 // 8M.
 }
 
 // NewGinWeb -
 func NewGinWeb(uri string, ht int32, bzn bz.BZNet) *GinWeb {
-    gw := &GinWeb{host: uri, heart: ht, bzn: bzn }
-    gw.http = uri != ""
-    gw.memory = 8 << 20
-    // gw.Engine = gin.Default()
-    gw.Engine = gin.New()
-    return gw
+	gw := &GinWeb{host: uri, heart: ht, bzn: bzn}
+	gw.http = uri != ""
+	gw.memory = 8 << 20
+	// gw.Engine = gin.Default()
+	gw.Engine = gin.New()
+	return gw
 }
 
 // Cors -
@@ -80,43 +79,43 @@ func (gw *GinWeb) Cors() gin.HandlerFunc {
 
 // AccessIps -
 func (gw *GinWeb) AccessIps() gin.HandlerFunc {
-    return func(c *gin.Context) {
-        ip := c.RemoteIP()
-        if err := gw.bzn.AccessIpsAllow(ip); err != nil {
-            logweb.Errorln("Web.AccessIpsAllow - ip ", ip, err.Error())
-            c.AbortWithStatus(200)
-            return
-        }
-        if err := gw.bzn.AccessIpsDeny(ip); err != nil {
-            logweb.Errorln("Web.AccessIpsDeny - ip ", ip, err.Error())
-            c.AbortWithStatus(200)
-            return
-        }
-        c.Next()
-    }
+	return func(c *gin.Context) {
+		ip := c.RemoteIP()
+		if err := gw.bzn.AccessIpsAllow(ip); err != nil {
+			logweb.Errorln("Web.AccessIpsAllow - ip ", ip, err.Error())
+			c.AbortWithStatus(200)
+			return
+		}
+		if err := gw.bzn.AccessIpsDeny(ip); err != nil {
+			logweb.Errorln("Web.AccessIpsDeny - ip ", ip, err.Error())
+			c.AbortWithStatus(200)
+			return
+		}
+		c.Next()
+	}
 }
 
 // Middlewares -
 func (gw *GinWeb) Middlewares() *GinWeb {
-    gw.Logger(gw.logPath)
-    gw.Use(gin.Logger())
+	gw.Logger(gw.logPath)
+	gw.Use(gin.Logger())
 
-    gw.Use(gw.Cors())
+	gw.Use(gw.Cors())
 	gw.Use(gin.Recovery())
-    gw.Use(gw.AccessIps())
+	gw.Use(gw.AccessIps())
 	// add auth validate.
 	// gw.Use(gin.BasicAuth(gin.Accounts{"username": "feng", "password": "yue"}))
-    return gw
+	return gw
 }
 
 // Logger -
 func (gw *GinWeb) Logger(logPath string) {
-    logfile := filepath.Join(gw.logPath, utils.LogName("bytezero_access"))
-    logweb.Infoln("Web.Logger to ", logfile)
-    f, _ := os.Create(logfile)
-    // gin.DisableConsoleColor()
-    // gin.DefaultWriter = io.MultiWriter(f)
-    gin.DefaultWriter = io.MultiWriter(f, os.Stdout)
+	logfile := filepath.Join(gw.logPath, utils.LogName("bytezero_access"))
+	logweb.Infoln("Web.Logger to ", logfile)
+	f, _ := os.Create(logfile)
+	// gin.DisableConsoleColor()
+	// gin.DefaultWriter = io.MultiWriter(f)
+	gin.DefaultWriter = io.MultiWriter(f, os.Stdout)
 }
 
 // Admins -
@@ -129,17 +128,17 @@ func (gw *GinWeb) Statics() {
 	// 上传文件大小.
 	gw.MaxMultipartMemory = gw.memory
 
-    // http://192.168.90.162:7790/public/upload.html
-    // http://192.168.90.162:7790/public/index.html
+	// http://192.168.90.162:7790/public/upload.html
+	// http://192.168.90.162:7790/public/index.html
 	gw.LoadHTMLGlob("./public/*.html")
-	gw.Static("/static", "./public/static")
-	gw.Static("/public", "./public/")
+	gw.StaticFS("/static", http.Dir("./public/static"))
+	gw.StaticFS("/public", http.Dir("./public"))
 
 }
 
 // Routers - Routers
 func (gw *GinWeb) Routers() {
-	gw.Any("/", func(c *gin.Context) {
+	gw.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", gin.H{"title": "hello Go"})
 	})
 	gw.Statics()
@@ -149,96 +148,93 @@ func (gw *GinWeb) Routers() {
 	v1 := gw.Group("/api/v1")
 	{
 		gw.RouterBridge(v1)
-        gw.RouterAdmin(v1)
+		gw.RouterAdmin(v1)
+		gw.RouterSysStat(v1)
 	}
 
-    gw.Use(favicon.New("./public/favicon.ico"))
-
-
+	gw.Use(favicon.New("./public/favicon.ico"))
 
 	// gw.RouterWS()
 }
 
 // TlsHandler -
 func (gw *GinWeb) TlsHandler() gin.HandlerFunc {
-    return func(c *gin.Context) {
-        secureMiddleware := secure.New(secure.Options{
-            SSLRedirect: true,
-            SSLHost:     "localhost:8080",
-        })
-        err := secureMiddleware.Process(c.Writer, c.Request)
-        if err != nil {
-            logweb.Errorln("Web.TlsHandler - error", err.Error())
-            return
-        }
-        logweb.Errorln("Web.TlsHandler - ", c.RemoteIP())
-        c.Next()
-    }
+	return func(c *gin.Context) {
+		secureMiddleware := secure.New(secure.Options{
+			SSLRedirect: true,
+			SSLHost:     "localhost:8080",
+		})
+		err := secureMiddleware.Process(c.Writer, c.Request)
+		if err != nil {
+			logweb.Errorln("Web.TlsHandler - error", err.Error())
+			return
+		}
+		logweb.Errorln("Web.TlsHandler - ", c.RemoteIP())
+		c.Next()
+	}
 }
 
 // SetSecretTransport -
 func (gw *GinWeb) SetSecretTransport(address string, certFile string, keyFile string) *GinWeb {
-    gw.address = address
-    gw.certFile = certFile
-    gw.keyFile = keyFile
-    if gw.address == "" || gw.certFile == "" || gw.keyFile == "" {
-        logweb.Errorf("Web.SetSecretTransport - must is null. maybe %s, %s, %s.", gw.address, gw.certFile, gw.keyFile)
-        return gw
-    }
-    gw.https = true
-    return gw
+	gw.address = address
+	gw.certFile = certFile
+	gw.keyFile = keyFile
+	if gw.address == "" || gw.certFile == "" || gw.keyFile == "" {
+		logweb.Errorf("Web.SetSecretTransport - must is null. maybe %s, %s, %s.", gw.address, gw.certFile, gw.keyFile)
+		return gw
+	}
+	gw.https = true
+	return gw
 }
 
 // SetStaticInfo -
 func (gw *GinWeb) SetStaticInfo(memory int64, logPath string, uploadPath string) *GinWeb {
-    gw.logPath = logPath
-    gw.uploadPath = uploadPath
-    gw.memory = memory
-    utils.DirIsExistThenMkdir(filepath.Join(gw.logPath))
-    utils.DirIsExistThenMkdir(filepath.Join(gw.uploadPath))
-    return gw
+	gw.logPath = logPath
+	gw.uploadPath = uploadPath
+	gw.memory = memory
+	utils.DirIsExistThenMkdir(filepath.Join(gw.logPath))
+	utils.DirIsExistThenMkdir(filepath.Join(gw.uploadPath))
+	return gw
 }
 
 // StartTls -
 func (gw *GinWeb) StartTls() {
-    if !gw.https {
-        return
-    }
-    if gw.address == "" || gw.certFile == "" || gw.keyFile == "" {
-        logweb.Errorf("Web.StartTls - must is null. maybe %s, %s, %s.", gw.address, gw.certFile, gw.keyFile)
-        return
-    }
+	if !gw.https {
+		return
+	}
+	if gw.address == "" || gw.certFile == "" || gw.keyFile == "" {
+		logweb.Errorf("Web.StartTls - must is null. maybe %s, %s, %s.", gw.address, gw.certFile, gw.keyFile)
+		return
+	}
 
-    gw.Use(gw.TlsHandler())
-    logweb.Println("Web.Start https://", gw.address, " , Start Now.")
-    // gw.RunTLS(gw.address, gw.certFile, gw.keyFile)
-    // be gracefully terminated & restarted
-    bz.ListenAndServeTLS(gw.address, gw.certFile, gw.keyFile, gw.Engine)
-    logweb.Println("Web.Start https://", gw.address, " , Start Over.")
+	gw.Use(gw.TlsHandler())
+	logweb.Println("Web.Start https://", gw.address, " , Start Now.")
+	// gw.RunTLS(gw.address, gw.certFile, gw.keyFile)
+	// be gracefully terminated & restarted
+	bz.ListenAndServeTLS(gw.address, gw.certFile, gw.keyFile, gw.Engine)
+	logweb.Println("Web.Start https://", gw.address, " , Start Over.")
 }
 
 // Start - Start
 func (gw *GinWeb) Start() {
-    gw.Middlewares()
+	gw.Middlewares()
 	gw.Routers()
 
-    if gw.https && gw.http {
-        go gw.StartTls()
-    } else if gw.https {
-        gw.StartTls()
-    }
+	if gw.https && gw.http {
+		go gw.StartTls()
+	} else if gw.https {
+		gw.StartTls()
+	}
 
-    if gw.http {
-        if gw.host == "" {
-            logweb.Panic("Web.Start http:// is null.")
-        }
-        logweb.Println("Web.Start http://", gw.host, " , Start Now.")
-        host := gw.host
-        // gw.Run(host)
-        // be gracefully terminated & restarted
-        bz.ListenAndServe(host, gw.Engine)
-        logweb.Println("Web.Start http://", gw.host, " , Start Over.")
-    }
+	if gw.http {
+		if gw.host == "" {
+			logweb.Panic("Web.Start http:// is null.")
+		}
+		logweb.Println("Web.Start http://", gw.host, " , Start Now.")
+		host := gw.host
+		// gw.Run(host)
+		// be gracefully terminated & restarted
+		bz.ListenAndServe(host, gw.Engine)
+		logweb.Println("Web.Start http://", gw.host, " , Start Over.")
+	}
 }
-
-

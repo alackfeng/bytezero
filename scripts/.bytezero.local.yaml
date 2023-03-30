@@ -3,23 +3,23 @@ app:
   version: "v1.0.0"
   server:
     up: false
-    ip: 192.168.90.162
+    ip: 192.168.90.23
     port: 7788
     margic: true
   tls:
     up: false
-    ip: 192.168.90.162
+    ip: 192.168.90.23
     port: 7789
     cacert: "./scripts/certs/server/server.crt"
     cakey: "./scripts/certs/server/server.key"
   web:
     http:
       up: true
-      host: 192.168.90.162:7790
+      host: 192.168.90.23:7790
       heart: 3000
     https:
-      up: true
-      host: 192.168.90.162:7791
+      up: false
+      host: 192.168.90.23:7791
       cacert: "./scripts/certs/server/server.crt"
       cakey: "./scripts/certs/server/server.key"
     static:
@@ -31,13 +31,14 @@ app:
   rwBufferLen: 10485760
   appid: bytezero-appid
   appkey: secret
-  logPath: "./bin/log/bytezero"
+  #logPath: "./bin/log/bytezero"
+  logPath: "stdout"
   accessIpsAllow: "./scripts/.accessIps.allow"
   accessIpsDeny: "./scripts/.accessIps.deny"
   credential:
     expiredMs: 3600000
     urls:
-      - tcp://192.168.90.162:7788
-      - tls://192.168.90.162:7789
-      - tcp://192.168.90.116:7788
-      - tls://192.168.90.116:7789
+      - tcp://192.168.90.23:7788
+      - tls://192.168.90.23:7789
+      - tcp://192.168.90.23:7788
+      - tls://192.168.90.23:7789

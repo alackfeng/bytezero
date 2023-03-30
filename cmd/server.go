@@ -36,46 +36,46 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("bytezero server called", daemonProc)
+		fmt.Println("bytezero server called - mode daemon:", daemonProc)
 
-        profile.SetLogout(bze.ConfigGlobal().App.LogPath)
-        profile.InitGC(100)
-        stopFunc, err := profile.ProfileIfEnabled()
+		profile.SetLogout(bze.ConfigGlobal().App.LogPath)
+		profile.InitGC(100)
+		stopFunc, err := profile.ProfileIfEnabled()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Bytezero Server Error: %s\n", err.Error())
 			return
 		}
 		defer stopFunc() // to be executed as late as possible
 
-        maxBufferLen, _ := cmd.Flags().GetInt("max-buffer-len")
-        rwBufferLen, _ := cmd.Flags().GetInt("rw-buffer-len")
-        port, _ := cmd.Flags().GetInt("port")
-        margic, _ := cmd.Flags().GetBool("margic")
-        host, _ := cmd.Flags().GetString("host")
-        appid, _ := cmd.Flags().GetString("appid")
-        appkey, _ := cmd.Flags().GetString("appkey")
-        needTls, _ := cmd.Flags().GetBool("tls")
-        tlsPort, _ := cmd.Flags().GetInt("tlsport")
-        caCert, _ := cmd.Flags().GetString("cacert")
-        caKey, _ := cmd.Flags().GetString("cakey")
+		maxBufferLen, _ := cmd.Flags().GetInt("max-buffer-len")
+		rwBufferLen, _ := cmd.Flags().GetInt("rw-buffer-len")
+		port, _ := cmd.Flags().GetInt("port")
+		margic, _ := cmd.Flags().GetBool("margic")
+		host, _ := cmd.Flags().GetString("host")
+		appid, _ := cmd.Flags().GetString("appid")
+		appkey, _ := cmd.Flags().GetString("appkey")
+		needTls, _ := cmd.Flags().GetBool("tls")
+		tlsPort, _ := cmd.Flags().GetInt("tlsport")
+		caCert, _ := cmd.Flags().GetString("cacert")
+		caKey, _ := cmd.Flags().GetString("cakey")
 
-        done := make(chan bool)
+		done := make(chan bool)
 		// sigs := make(chan os.Signal, 1)
-        // signal.Notify(sigs)
-        ctx, cancel := context.WithCancel(context.Background())
-        defer func() {
+		// signal.Notify(sigs)
+		ctx, cancel := context.WithCancel(context.Background())
+		defer func() {
 			cancel()
 			// close(sigs)
 			close(done)
 		}()
-        logcmd.Errorln("main begin...")
-        bzn := bze.NewBytezeroNet(ctx, done)
-        bze.ConfigSetServer(maxBufferLen, rwBufferLen, port, host, appid, appkey, margic)
-        bze.ConfigSetTls(needTls, tlsPort, caCert, caKey)
-        bzn.Main()
+		logcmd.Errorln("main begin...")
+		bzn := bze.NewBytezeroNet(ctx, done)
+		bze.ConfigSetServer(maxBufferLen, rwBufferLen, port, host, appid, appkey, margic)
+		bze.ConfigSetTls(needTls, tlsPort, caCert, caKey)
+		bzn.Main()
 
-        logcmd.Errorln("main wait...")
-        bzn.Wait()
+		logcmd.Errorln("main wait...")
+		bzn.Wait()
 		// bQuit := false
 		// for {
 		// 	select {
@@ -109,12 +109,12 @@ func init() {
 	serverCmd.Flags().IntP("max-buffer-len", "l", 1024*1024*10, "Max Buffer Length")
 	serverCmd.Flags().IntP("rw-buffer-len", "b", 1024*1024*1, "Read and Write Buffer Length")
 	serverCmd.Flags().IntP("port", "p", 7788, "tcp or udp server listen port")
-    serverCmd.Flags().BoolP("margic", "m", true, "margic for tcp listen secret")
+	serverCmd.Flags().BoolP("margic", "m", true, "margic for tcp listen secret")
 	serverCmd.Flags().StringP("host", "s", "192.168.90.162:7790", "web rest api host url")
-    serverCmd.Flags().StringP("appid", "i", "bytezero-appid", "bytezero appid")
+	serverCmd.Flags().StringP("appid", "i", "bytezero-appid", "bytezero appid")
 	serverCmd.Flags().StringP("appkey", "a", "secret", "appkey secret")
-    serverCmd.Flags().BoolP("tls", "t", true, "tls server listen")
-    serverCmd.Flags().IntP("tlsport", "r", 7789, "tls server listen port")
-    serverCmd.Flags().StringP("cacert", "e", "./scripts/certs/server/server.crt", "tls server ca cert: ./scripts/certs/server/server.crt")
-    serverCmd.Flags().StringP("cakey", "k", "./scripts/certs/server/server.key", "tls server ca key: ./scripts/certs/server/server.key")
+	serverCmd.Flags().BoolP("tls", "t", false, "tls server listen")
+	serverCmd.Flags().IntP("tlsport", "r", 7789, "tls server listen port")
+	serverCmd.Flags().StringP("cacert", "e", "./scripts/certs/server/server.crt", "tls server ca cert: ./scripts/certs/server/server.crt")
+	serverCmd.Flags().StringP("cakey", "k", "./scripts/certs/server/server.key", "tls server ca key: ./scripts/certs/server/server.key")
 }
