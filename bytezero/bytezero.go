@@ -37,7 +37,7 @@ type BZNet interface {
 	SystemStop() error
 	SystemReload() error
 
-	Stats() (interface{}, error)
+	Stats(SysStatType) (interface{}, error)
 }
 
 // BZNetServer -
@@ -47,3 +47,15 @@ type BZNetServer interface {
 // BZNetClient -
 type BZNetClient interface {
 }
+
+// SysStatType - Stat资源类型.
+type SysStatType int32
+
+const (
+	SysStatNet SysStatType = iota + 1
+	SysStatNetSubscribe
+	SysStatNetList
+	SysStatMem
+	SysStatCPU
+	SysStatDISK
+)

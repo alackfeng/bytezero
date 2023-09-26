@@ -14,3 +14,6 @@ bin/**
 bz.log*
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+./web
+app/node_modules/**/*

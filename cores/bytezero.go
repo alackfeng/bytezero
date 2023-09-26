@@ -102,12 +102,21 @@ func (bzn *BytezeroNet) SystemStop() error {
 
 // SystemReload -
 func (bzn *BytezeroNet) SystemReload() error {
+
 	return nil
 }
 
 // Stats -
-func (bzn *BytezeroNet) Stats() (interface{}, error) {
-	return bzn.stat.GetNet()
+func (bzn *BytezeroNet) Stats(tp bz.SysStatType) (interface{}, error) {
+	switch tp {
+	case bz.SysStatNetList:
+		return bzn.stat.GetNetList()
+	case bz.SysStatNetSubscribe:
+		return bzn.stat.GetNetSubscribe()
+	case bz.SysStatNet:
+		return bzn.stat.GetNet()
+	}
+	return nil, fmt.Errorf("not support now")
 }
 
 // Main -

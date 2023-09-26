@@ -18,7 +18,7 @@ type NetStat struct {
 
 type CountersStat struct {
 	Stat  []gnet.IOCountersStat `form:"Stat" json:"Stat" xml:"Stat" bson:"Stat" binding:"required"`
-	NowMs int64                 `form:"nowMs" json:"nowMs" xml:"nowMs" bson:"nowMs" binding:"required"`
+	NowMs int64                 `form:"NowMs" json:"NowMs" xml:"NowMs" bson:"NowMs" binding:"required"`
 }
 
 // NetInfo - 采集信息.
@@ -30,6 +30,56 @@ type NetInfo struct {
 
 func (s NetInfo) String() string {
 	return fmt.Sprintf("name:%s - mac:%s - addrs:%v - speed:%v", s.Name, s.HardwareAddr.String(), s.Addr, s.Speed)
+}
+
+// NetCard -
+type NetCard struct {
+	Name  string   `form:"Name" json:"Name" xml:"Name" bson:"Name" binding:"required"`
+	Mac   string   `form:"Mac" json:"Mac" xml:"Mac" bson:"Mac" binding:"required"`
+	IP    []string `form:"IP" json:"IP" xml:"IP" bson:"IP" binding:"required"`
+	Speed uint32   `form:"Speed" json:"Speed" xml:"Speed" bson:"Speed" binding:"required"`
+}
+
+// GetNetCardSubscribeReq - 请求实时网卡速率.
+type GetNetCardSubscribeReq struct {
+	Name string `form:"Name" json:"Name" xml:"Name" bson:"Name" binding:"required"`
+}
+
+type GetNetCardSubscribeResults struct {
+	Info []CountersStat `form:"Info" json:"Info" xml:"Info" bson:"Info" binding:"required"`
+}
+
+// GetNetSubscribe - 请求实时网卡速率
+func (s *SysStat) GetNetSubscribe() (results GetNetCardSubscribeResults, err error) {
+	for _, counter := range s.netst.countersStat {
+		results.Info = append(results.Info, *counter)
+	}
+	return results, nil
+}
+
+type NetCardListResults struct {
+	Info []NetCard `form:"Info" json:"Info" xml:"Info" bson:"Info" binding:"required"`
+}
+
+// GetNetList - 获取全部网卡.
+func (s *SysStat) GetNetList() (cards NetCardListResults, err error) {
+	for _, net := range s.netst.netif {
+		netCard := NetCard{
+			Name:  net.Name,
+			Mac:   net.HardwareAddr.String(),
+			IP:    []string{},
+			Speed: net.Speed,
+		}
+		addrs, err := net.Addrs()
+		if err != nil {
+			return cards, err
+		}
+		for _, addr := range addrs {
+			netCard.IP = append(netCard.IP, addr.String())
+		}
+		cards.Info = append(cards.Info, netCard)
+	}
+	return cards, nil
 }
 
 // StatNetResult -
