@@ -1,4 +1,69 @@
+import {
+  AddressEdit,
+  Area,
+  Button,
+  Calendar,
+  Card,
+  Cell,
+  CellGroup,
+  Checkbox,
+  CheckboxGroup,
+  Col,
+  CollapseItem,
+  CountDown,
+  DatetimePicker,
+  Dialog,
+  DropdownItem,
+  Field,
+  Image,
+  ImagePreview,
+  IndexBar,
+  Lazyload,
+  List,
+  Locale,
+  Notify,
+  Picker,
+  Progress,
+  Row,
+  Sku,
+  Swipe,
+  SwipeCell,
+  Tabs,
+  Toast,
+  Uploader,
+} from 'vant'
 import Vue from 'vue'
-import Vant from 'vant'
 
-Vue.use(Vant)
+Vue.use(Row)
+Vue.use(Cell)
+Vue.use(CellGroup)
+Vue.use(Col)
+Vue.use(Image)
+Vue.use(Cell)
+Vue.use(Card)
+Vue.use(AddressEdit)
+Vue.use(Area)
+Vue.use(Calendar)
+Vue.use(Checkbox)
+Vue.use(CheckboxGroup)
+Vue.use(CollapseItem)
+Vue.use(CountDown)
+Vue.use(DatetimePicker)
+Vue.use(DropdownItem)
+Vue.use(Dialog)
+Vue.use(Field)
+Vue.use(ImagePreview)
+Vue.use(IndexBar)
+Vue.use(Lazyload)
+Vue.use(List)
+Vue.use(Locale)
+Vue.use(Notify)
+Vue.use(Picker)
+Vue.use(Progress)
+Vue.use(Sku)
+Vue.use(Swipe)
+Vue.use(SwipeCell)
+Vue.use(Tabs)
+Vue.use(Toast)
+Vue.use(Uploader)
+Vue.use(Button)

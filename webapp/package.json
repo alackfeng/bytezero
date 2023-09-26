@@ -15,10 +15,13 @@
   },
   "dependencies": {
     "@nuxtjs/axios": "^5.13.6",
+    "@nuxtjs/i18n": "^7.3.1",
     "@nuxtjs/pwa": "^3.3.5",
     "core-js": "^3.25.3",
+    "echarts": "^5.4.2",
     "nuxt": "^2.15.8",
     "vant": "^2.12.50",
+    "vconsole": "^3.15.0",
     "vue": "^2.7.10",
     "vue-server-renderer": "^2.7.10",
     "vue-template-compiler": "^2.7.10"

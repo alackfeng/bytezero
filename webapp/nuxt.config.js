@@ -21,7 +21,12 @@ export default {
   css: ['vant/lib/index.css'],
 
   // Plugins to run before rendering page: https://go.nuxtjs.dev/config-plugins
-  plugins: ['@/plugins/vant'],
+  plugins: [
+    '@/plugins/vant',
+    { src: '@/plugins/api', ssr: false },
+    { src: '@/plugins/vconsole.js', ssr: false },
+    { src: '@/plugins/echarts.js', ssr: false },
+  ],
 
   // Auto import components: https://go.nuxtjs.dev/config-components
   components: true,
@@ -40,6 +45,8 @@ export default {
     '@nuxtjs/axios',
     // https://go.nuxtjs.dev/pwa
     '@nuxtjs/pwa',
+    // https://i18n.nuxtjs.org
+    '@nuxtjs/i18n',
   ],
 
   // Axios module configuration: https://go.nuxtjs.dev/config-axios
@@ -52,6 +59,19 @@ export default {
   pwa: {
     manifest: {
       lang: 'en',
+    },
+  },
+
+  // i18n module configuration: https://go.nuxtjs.dev/i18n
+  i18n: {
+    locales: ['en', 'zh-CN'],
+    defaultLocale: 'zh-CN',
+    vueI18n: {
+      fallbackLocale: 'zh-CN',
+      messages: {
+        en: require('./locales/en.json'),
+        'zh-CN': require('./locales/zh-CN.json'),
+      },
     },
   },
 

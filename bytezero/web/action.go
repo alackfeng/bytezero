@@ -12,7 +12,7 @@ type ResultMap map[string]interface{}
 // ActionResult -
 type ActionResult struct {
 	Code    ErrCode     `form:"code" json:"code" xml:"code" bson:"code" binding:"required"`
-	Message string      `form:"message" json:"message" xml:"message" bson:"message" binding:"required"`
+	Message string      `form:"info" json:"info" xml:"info" bson:"info" binding:"required"`
 	Data    interface{} `form:"data" json:"data" xml:"data" bson:"data" binding:"required"`
 }
 

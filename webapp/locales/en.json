@@ -1,0 +1,19 @@
+{
+  "links": {
+    "home": "Home",
+    "extlink": "Extlink",
+    "report": "DataAnalysis",
+    "about": "About",
+    "english": "English version",
+    "chinese": "简体中文"
+  },
+  "head": {
+    "title": "Homecloud extlink share",
+    "sub-title": "only you"
+  },
+  "sysstat": {
+    "monitor": {
+      "title": "Server System Stat Monitor"
+    }
+  }
+}

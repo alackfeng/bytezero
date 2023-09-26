@@ -11,5 +11,12 @@ module.exports = {
   ],
   plugins: [],
   // add your custom rules here
-  rules: {},
+  rules: {
+    'no-console': process.env.NODE_ENV === 'production' ? 'error' : 'off',
+    'no-debug': process.env.NODE_ENV === 'production' ? 'error' : 'off',
+    'vue/first-attribute-linebreak': [
+      'error',
+      { singleline: 'ignore', multiline: 'beside' },
+    ],
+  },
 }
