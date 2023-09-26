@@ -34,6 +34,8 @@ type Contract struct {
 type BusinessDay struct {
 	currentDate                  string  // 日期.
 	signSuccessTotalCount        int     // 当日常规合同签署总数.
+	signInvalidCount             int     // 当日解除合同签署份数.
+        signSettlementCount          int     // 当日结清合同签署份数.
 	signTotalCount               int     // 当日常规合同签署次数.
 	signSuccessPresentTotalCount int     // 当日体验合同签署总数.
 	signPresentTotalCount        int     // 当日体验合同签署次数.
@@ -85,6 +87,46 @@ func (f *BusinessDay) BusinessDaySignSuccessTotalCount(db *sql.DB) error {
 		}
 	}
 	// fmt.Println("BusinessDay.BusinessDaySignSuccessTotalCount - signSuccessTotalCount.", f.business.signSuccessTotalCount)
+	return nil
+}
+
+// BusinessDaySignInvalidCount - 当日解除合同签署份数.
+func (f *BusinessDay) BusinessDaySignInvalidCount(db *sql.DB) error {
+	sqlQuery := "SELECT COUNT(id) AS count FROM t_contract  WHERE FROM_UNIXTIME(finish_time DIV 1000, '%Y-%m-%d 00:00:00') = ? AND contract_type = 2 AND status = 3; "
+	rows, err := db.Query(sqlQuery, f.currentDate)
+	if err != nil {
+		fmt.Println("BusinessDay.BusinessDaySignInvalidCount - error.", err.Error())
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var count int64
+		if err := rows.Scan(&count); err != nil {
+			return err
+		}
+		f.signInvalidCount = res.count
+	 	fmt.Println("BusinessDay.BusinessDaySignInvalidCount - signInvalidCount.", f.signInvalidCount)
+	}
+	return nil
+}
+
+// BusinessDaySignSettlementCount - 当日结清合同签署份数.
+func (f *BusinessDay) BusinessDaySignSettlementCount(db *sql.DB) error {
+	sqlQuery := "SELECT COUNT(id) AS count FROM t_contract  WHERE FROM_UNIXTIME(finish_time DIV 1000, '%Y-%m-%d 00:00:00') = ? AND contract_type = 4 AND status = 3; "
+	rows, err := db.Query(sqlQuery, f.currentDate)
+	if err != nil {
+		fmt.Println("BusinessDay.BusinessDaySignInvalidCount - error.", err.Error())
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var count int64
+		if err := rows.Scan(&count); err != nil {
+			return err
+		}
+		f.signSettlementCount = res.count
+	 	fmt.Println("BusinessDay.BusinessDaySignSettlementCount - signSettlementCount.", f.signSettlementCount)
+	}
 	return nil
 }
 
@@ -188,9 +230,9 @@ func (f *BusinessDay) BusinessRemove(reportDb *sql.DB) error {
 
 // BusinessInsert -
 func (b *BusinessDay) BusinessInsert(reportDb *sql.DB) error {
-	sqlQuery := "insert into t_report_business(currentDate, signSuccessTotalCount, signTotalCount, signSuccessPresentTotalCount, signPresentTotalCount, customContractSignCount, customContractSignPercent, templateContractSignCount, templateContractSignPercent, templateLoanContractSignCount, templateLoanContractSignPercent, templateNoLoanContractSignCount, templateNoLoanContractSignPercent, createTime) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+	sqlQuery := "insert into t_report_business(currentDate, signSuccessTotalCount, signInvalidCount, signSettlementCount, signTotalCount, signSuccessPresentTotalCount, signPresentTotalCount, customContractSignCount, customContractSignPercent, templateContractSignCount, templateContractSignPercent, templateLoanContractSignCount, templateLoanContractSignPercent, templateNoLoanContractSignCount, templateNoLoanContractSignPercent, createTime) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 	primaryKeyDateName := utils.FormatDate(b.currentDate)
-	res, err := reportDb.Exec(sqlQuery, primaryKeyDateName, b.signSuccessTotalCount, b.signTotalCount, b.signSuccessPresentTotalCount, b.signPresentTotalCount,
+	res, err := reportDb.Exec(sqlQuery, primaryKeyDateName, b.signSuccessTotalCount, b.signInvalidCount, b.signSettlementCount, b.signTotalCount, b.signSuccessPresentTotalCount, b.signPresentTotalCount,
 		b.customContractSignCount, b.customContractSignPercent,
 		b.templateContractSignCount, b.templateContractSignPercent,
 		b.templateLoanContractSignCount, b.templateLoanContractSignPercent,
@@ -218,6 +260,8 @@ func (f *FlashSignApp) Business(lastDate string) error {
 	o.BusinessDayContractSignCount(f.db)
 	o.BusinessDayTemplateContractSignCount(f.db)
 	// fmt.Println("FlashSignApp.Business - ", o)
+	o.BusinessDaySignInvalidCount(f.db)
+	o.BusinessDaySignSettlementCount(f.db)
 	o.BusinessRemove(f.reportDb)
 	o.BusinessInsert(f.reportDb)
 	return nil
