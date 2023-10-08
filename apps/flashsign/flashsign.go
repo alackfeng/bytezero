@@ -22,7 +22,7 @@ type FlashSignApp struct {
 func NewFlashSignApp() *FlashSignApp {
 	return &FlashSignApp{
 		driverName:         "mysql",
-		dbSourceBaasReport: "root:123456@tcp(192.168.90.53:3306)/baas_report",
+		dbSourceBaasReport: "root:Flzx3qcysyhl9T@tcp(192.168.90.53:3306)/baas_report",
 		config: &BaasReportDict{
 			lastReportDate: "2020-10-19 00:00:00",
 		},

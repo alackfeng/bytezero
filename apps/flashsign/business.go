@@ -100,11 +100,11 @@ func (f *BusinessDay) BusinessDaySignInvalidCount(db *sql.DB) error {
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var count int64
+		var count int
 		if err := rows.Scan(&count); err != nil {
 			return err
 		}
-		f.signInvalidCount = res.count
+		f.signInvalidCount = count
 	 	fmt.Println("BusinessDay.BusinessDaySignInvalidCount - signInvalidCount.", f.signInvalidCount)
 	}
 	return nil
@@ -120,11 +120,11 @@ func (f *BusinessDay) BusinessDaySignSettlementCount(db *sql.DB) error {
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var count int64
+		var count int
 		if err := rows.Scan(&count); err != nil {
 			return err
 		}
-		f.signSettlementCount = res.count
+		f.signSettlementCount = count
 	 	fmt.Println("BusinessDay.BusinessDaySignSettlementCount - signSettlementCount.", f.signSettlementCount)
 	}
 	return nil
