@@ -48,6 +48,12 @@ type BusinessDay struct {
 	templateLoanContractSignPercent   float64 // 模板类借贷类合同当日占比.
 	templateNoLoanContractSignCount   int     // 模板类非借贷类合同签署份数.
 	templateNoLoanContractSignPercent float64 // 模板类非借贷类合同当日占比.
+
+	// 2023-10-25 - .
+	notarizationBuyCountDay		int // 当日购买公证书数量.
+	notarizationBuyCountSum		int // 累记购买公证书数量.
+	notarizationReqSuccessCountDay	int // 当日公证书出证成功数量.
+	notarizationReqSuccessCountSum	int // 累记公证书出证成功数量.
 }
 
 // NewBusinessDay -
@@ -214,6 +220,110 @@ func (f *BusinessDay) BusinessDayTemplateContractSignCount(db *sql.DB) error {
 	return nil
 }
 
+// BusinessDayNotarizationBuyCountDay - 当日购买公证书数量.
+func (f *BusinessDay) BusinessDayNotarizationBuyCountDay(db *sql.DB) error {
+	sqlQuery := "SELECT COUNT(id) AS count FROM notarization_buy_record  WHERE FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = ?; "
+	rows, err := db.Query(sqlQuery, f.currentDate)
+	if err != nil {
+		fmt.Println("BusinessDay.BusinessDayNotarizationBuyCountDay - error.", err.Error())
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var count int
+		if err := rows.Scan(&count); err != nil {
+			return err
+		}
+		f.notarizationBuyCountDay = count
+	 	fmt.Println("BusinessDay.BusinessDayNotarizationBuyCountDay - notarizationBuyCountDay.", f.notarizationBuyCountDay)
+	}
+	return nil
+}
+
+// BusinessDayNotarizationBuyCountSum - 累记购买公证书数量.
+func (f *BusinessDay) BusinessDayNotarizationBuyCountSum(db *sql.DB) error {
+	sqlQuery := "SELECT COUNT(id) AS count FROM notarization_buy_record; "
+	rows, err := db.Query(sqlQuery)
+	if err != nil {
+		fmt.Println("BusinessDay.BusinessDayNotarizationBuyCountSum - error.", err.Error())
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var count int
+		if err := rows.Scan(&count); err != nil {
+			return err
+		}
+		f.notarizationBuyCountSum = count
+	 	fmt.Println("BusinessDay.BusinessDayNotarizationBuyCountSum - notarizationBuyCountSum.", f.notarizationBuyCountSum)
+	}
+	return nil
+}
+
+// BusinessDayNotarizationReqSuccessCountDay - 当日公证书出证成功数量.
+func (f *BusinessDay) BusinessDayNotarizationReqSuccessCountDay(db *sql.DB) error {
+	sqlQuery := "SELECT COUNT(id) AS count FROM notarization_request_record  WHERE FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = ? AND status = 1 ; "
+	rows, err := db.Query(sqlQuery, f.currentDate)
+	if err != nil {
+		fmt.Println("BusinessDay.BusinessDayNotarizationReqSuccessCountDay - error.", err.Error())
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var count int
+		if err := rows.Scan(&count); err != nil {
+			return err
+		}
+		f.notarizationReqSuccessCountDay = count
+	 	fmt.Println("BusinessDay.BusinessDayNotarizationReqSuccessCountDay - notarizationReqSuccessCountDay.", f.notarizationReqSuccessCountDay)
+	}
+	return nil
+}
+
+// BusinessDayNotarizationReqSuccessCountSum - 累记公证书出证成功数量.
+func (f *BusinessDay) BusinessDayNotarizationReqSuccessCountSum(db *sql.DB) error {
+	sqlQuery := "SELECT COUNT(id) AS count FROM notarization_request_record  WHERE status = 1 ; "
+	rows, err := db.Query(sqlQuery)
+	if err != nil {
+		fmt.Println("BusinessDay.BusinessDayNotarizationReqSuccessCountSum - error.", err.Error())
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var count int
+		if err := rows.Scan(&count); err != nil {
+			return err
+		}
+		f.notarizationReqSuccessCountSum = count
+	 	fmt.Println("BusinessDay.BusinessDayNotarizationReqSuccessCountSum - notarizationReqSuccessCountSum.", f.notarizationReqSuccessCountSum)
+	}
+	return nil
+}
+
+// BusinessUpdate - 
+func (f *BusinessDay) BusinessUpdate(reportDb *sql.DB, field string) error {
+	primaryKeyDateName := utils.FormatDate(f.currentDate)
+	if field == "notarizationBuyCountDay" {
+ 		sqlQuery := "update t_report_business set notarizationBuyCountDay = ? where currentDate = ?; "
+		_, err := reportDb.Exec(sqlQuery, f.notarizationBuyCountDay, primaryKeyDateName)
+		if err != nil {
+			fmt.Println("BusinessDay.BusinessUpdate - error.", field, err.Error())
+			return err
+		}
+	} else if field == "notarizationReqSuccessCountDay" {
+ 		sqlQuery := "update t_report_business set notarizationReqSuccessCountDay = ? where currentDate = ?; "
+		_, err := reportDb.Exec(sqlQuery, f.notarizationReqSuccessCountDay, primaryKeyDateName)
+		if err != nil {
+			fmt.Println("BusinessDay.BusinessUpdate - error.", field, err.Error())
+			return err
+		}
+	} else {
+		fmt.Println("BusinessDay.BusinessUpdate - no field.", field)
+	}
+	return nil
+}
+
+
 // RevenueRemove -
 func (f *BusinessDay) BusinessRemove(reportDb *sql.DB) error {
 	primaryKeyDateName := utils.FormatDate(f.currentDate)
@@ -230,13 +340,14 @@ func (f *BusinessDay) BusinessRemove(reportDb *sql.DB) error {
 
 // BusinessInsert -
 func (b *BusinessDay) BusinessInsert(reportDb *sql.DB) error {
-	sqlQuery := "insert into t_report_business(currentDate, signSuccessTotalCount, signInvalidCount, signSettlementCount, signTotalCount, signSuccessPresentTotalCount, signPresentTotalCount, customContractSignCount, customContractSignPercent, templateContractSignCount, templateContractSignPercent, templateLoanContractSignCount, templateLoanContractSignPercent, templateNoLoanContractSignCount, templateNoLoanContractSignPercent, createTime) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+	sqlQuery := "insert into t_report_business(currentDate, signSuccessTotalCount, signInvalidCount, signSettlementCount, signTotalCount, signSuccessPresentTotalCount, signPresentTotalCount, customContractSignCount, customContractSignPercent, templateContractSignCount, templateContractSignPercent, templateLoanContractSignCount, templateLoanContractSignPercent, templateNoLoanContractSignCount, templateNoLoanContractSignPercent, notarizationBuyCountDay, notarizationBuyCountSum, notarizationReqSuccessCountDay, notarizationReqSuccessCountSum, createTime) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 	primaryKeyDateName := utils.FormatDate(b.currentDate)
 	res, err := reportDb.Exec(sqlQuery, primaryKeyDateName, b.signSuccessTotalCount, b.signInvalidCount, b.signSettlementCount, b.signTotalCount, b.signSuccessPresentTotalCount, b.signPresentTotalCount,
 		b.customContractSignCount, b.customContractSignPercent,
 		b.templateContractSignCount, b.templateContractSignPercent,
 		b.templateLoanContractSignCount, b.templateLoanContractSignPercent,
 		b.templateNoLoanContractSignCount, b.templateNoLoanContractSignPercent,
+		b.notarizationBuyCountDay, b.notarizationBuyCountSum, b.notarizationReqSuccessCountDay, b.notarizationReqSuccessCountSum,
 		time.Now(),
 	)
 	if err != nil {
@@ -262,6 +373,10 @@ func (f *FlashSignApp) Business(lastDate string) error {
 	// fmt.Println("FlashSignApp.Business - ", o)
 	o.BusinessDaySignInvalidCount(f.db)
 	o.BusinessDaySignSettlementCount(f.db)
+	o.BusinessDayNotarizationBuyCountDay(f.db)
+	o.BusinessDayNotarizationBuyCountSum(f.db)
+	o.BusinessDayNotarizationReqSuccessCountDay(f.db)
+	o.BusinessDayNotarizationReqSuccessCountSum(f.db)
 	o.BusinessRemove(f.reportDb)
 	o.BusinessInsert(f.reportDb)
 	return nil

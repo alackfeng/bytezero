@@ -158,6 +158,8 @@ func (f *FlashSignApp) Main(reportDate string, tableField string, loop bool) {
 			} else {
 			for {
 				o := &RevenueDay{currentDate: d}
+				o2 := &BusinessDay{currentDate: d}
+				fmt.Println("current day: ", o.currentDate)
 				if tableField == "averageAmount30day" {
 					o.AverageAmount30Day(f.reportDb, true)		
 					var ok bool
@@ -175,8 +177,28 @@ func (f *FlashSignApp) Main(reportDate string, tableField string, loop bool) {
 						break
 					}
 					
+				} else if tableField == "notarizationBuyCountDay" {
+					o2.BusinessDayNotarizationBuyCountDay(f.db)		
+					o2.BusinessUpdate(f.reportDb, tableField)
+					var ok bool
+					d, ok = FormatNextDate(o2.currentDate, 1)
+					if !ok {
+						fmt.Println("FlashSignApp.Main - skip ", o2.currentDate, ", next: ", d)
+						break
+					}
+					fmt.Println("FlashSignApp.Main - cmd ", tableField, o2.currentDate, ", next: ", d)
+				} else if tableField == "notarizationReqSuccessCountDay" {
+					o2.BusinessDayNotarizationReqSuccessCountDay(f.db)		
+					o2.BusinessUpdate(f.reportDb, tableField)
+					var ok bool
+					d, ok = FormatNextDate(o2.currentDate, 1)
+					if !ok {
+						fmt.Println("FlashSignApp.Main - skip ", o2.currentDate, ", next: ", d)
+						break
+					}
+					fmt.Println("FlashSignApp.Main - cmd ", tableField, o2.currentDate, ", next: ", d)
 				}
-				fmt.Println("FlashSignApp.Main - cmd ", tableField, o.currentDate, ", next: ", d)
+				// fmt.Println("FlashSignApp.Main - cmd ", tableField, o.currentDate, ", next: ", d)
 				// time.Sleep(time.Second*1)	
 			}
 			}
