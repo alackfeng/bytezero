@@ -262,7 +262,7 @@ func (f *BusinessDay) BusinessDayNotarizationBuyCountSum(db *sql.DB) error {
 
 // BusinessDayNotarizationReqSuccessCountDay - 当日公证书出证成功数量.
 func (f *BusinessDay) BusinessDayNotarizationReqSuccessCountDay(db *sql.DB) error {
-	sqlQuery := "SELECT COUNT(id) AS count FROM notarization_request_record  WHERE FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = ? AND status = 1 ; "
+	sqlQuery := "SELECT COUNT(DISTINCT(contract_no)) AS count FROM notarization_request_record  WHERE FROM_UNIXTIME(create_time DIV 1000, '%Y-%m-%d 00:00:00') = ? AND status = 1 ; "
 	rows, err := db.Query(sqlQuery, f.currentDate)
 	if err != nil {
 		fmt.Println("BusinessDay.BusinessDayNotarizationReqSuccessCountDay - error.", err.Error())
@@ -282,7 +282,7 @@ func (f *BusinessDay) BusinessDayNotarizationReqSuccessCountDay(db *sql.DB) erro
 
 // BusinessDayNotarizationReqSuccessCountSum - 累记公证书出证成功数量.
 func (f *BusinessDay) BusinessDayNotarizationReqSuccessCountSum(db *sql.DB) error {
-	sqlQuery := "SELECT COUNT(id) AS count FROM notarization_request_record  WHERE status = 1 ; "
+	sqlQuery := "SELECT COUNT(DISTINCT(contract_no)) AS count FROM notarization_request_record  WHERE status = 1 ; "
 	rows, err := db.Query(sqlQuery)
 	if err != nil {
 		fmt.Println("BusinessDay.BusinessDayNotarizationReqSuccessCountSum - error.", err.Error())
